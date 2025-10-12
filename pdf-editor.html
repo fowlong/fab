@@ -64,6 +64,16 @@
       flex-direction: column;
       gap: 0.5rem;
     }
+    .file-picker {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .file-name {
+      font-size: 0.9rem;
+      color: #3a425a;
+    }
     label {
       font-weight: 600;
     }
@@ -146,7 +156,11 @@
     <section class="panel" aria-label="Controls">
       <div class="control">
         <label for="pdfInput">Import PDF</label>
-        <input id="pdfInput" type="file" accept="application/pdf" />
+        <div class="file-picker">
+          <input id="pdfInput" type="file" accept="application/pdf" hidden />
+          <button id="importBtn" type="button">Choose File…</button>
+          <span id="fileName" class="file-name" aria-live="polite">No file selected</span>
+        </div>
       </div>
       <div class="control" id="pageControl" hidden>
         <label for="pageSelect">Page</label>
@@ -180,6 +194,8 @@
     (function() {
       const { jsPDF } = window.jspdf;
       const pdfInput = document.getElementById('pdfInput');
+      const importBtn = document.getElementById('importBtn');
+      const fileNameEl = document.getElementById('fileName');
       const pageControl = document.getElementById('pageControl');
       const pageSelect = document.getElementById('pageSelect');
       const statusEl = document.getElementById('status');
@@ -218,7 +234,11 @@
 
       canvas.on('object:removed', applyPointerMode);
 
+      importBtn.addEventListener('click', () => pdfInput.click());
+
       pdfInput.addEventListener('change', async (event) => {
+        const pickedFile = pdfInput.files && pdfInput.files[0];
+        fileNameEl.textContent = pickedFile ? pickedFile.name : 'No file selected';
         const file = event.target.files && event.target.files[0];
         resetState();
         if (!file) {
