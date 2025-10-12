@@ -181,15 +181,15 @@
     </section>
   </main>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha512-CqSeXyKOqlUm9zJuBp63qyoFwchqkj61+1zR2M3KS5Cv7/ULrRH7nDwXQzJqBGBWAz9bn22FvOIxUJ6aWbkH7Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" referrerpolicy="no-referrer"></script>
   <script>
     if (!window.pdfjsLib) {
       throw new Error('Unable to load pdf.js library.');
     }
-    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
   </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/6.0.1/fabric.min.js" integrity="sha512-T6EYemAJWRPl2loZDr+Y54OJ52zbWezDBMCDHfAcq1LYqWwb0yaI3suu8IUeckKpDjl3AUWS2LHkP88jTHVUNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-lNv0bHQwZ0pniS3pSkeCZMt2rt7NmBGG99nmHn7+O+kO5OVwOB1p5MNDoAuCEi0aKBslZx2drXr/7L0d0Na6JQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fabric@5.3.0/dist/fabric.min.js" referrerpolicy="no-referrer"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" referrerpolicy="no-referrer"></script>
   <script>
     (function() {
       const { jsPDF } = window.jspdf;
@@ -308,7 +308,7 @@
         canvas.selection = !isTextMode;
         canvas.defaultCursor = isTextMode ? 'text' : 'default';
         canvas.forEachObject(obj => {
-          const isText = textTypes.has(obj.type);
+          const isText = textTypes.has(obj.type) || Boolean(obj.svgIsText);
           const selectable = !isTextMode || isText;
           obj.selectable = selectable;
           obj.evented = selectable;
@@ -375,7 +375,11 @@
               reject(err);
             }
           }, (item, object) => {
+            const tagName = item && item.tagName ? item.tagName.toLowerCase() : '';
+            const isGlyph = item && typeof item.getAttribute === 'function' ? Boolean(item.getAttribute('data-font-name')) : false;
             object._fromSVG = true;
+            object.svgTagName = tagName;
+            object.svgIsText = Boolean(isGlyph || tagName === 'text' || tagName === 'tspan');
           });
         });
       }
@@ -391,7 +395,7 @@
 
       function storeCurrentPageState() {
         if (!currentPage || !pageCache.has(currentPage)) return;
-        const json = canvas.toJSON(['selectable', 'evented', 'hoverCursor']);
+        const json = canvas.toJSON(['selectable', 'evented', 'hoverCursor', 'svgTagName', 'svgIsText']);
         const entry = pageCache.get(currentPage);
         entry.fabricJSON = json;
         pageCache.set(currentPage, entry);
@@ -472,7 +476,7 @@
           tempCanvas.height = state.height;
           const tempFabric = new fabric.StaticCanvas(tempCanvas, { backgroundColor: '#ffffff' });
           loadSvgIntoCanvas(state.svgMarkup, tempFabric).then(() => {
-            const json = tempFabric.toJSON(['selectable', 'evented', 'hoverCursor']);
+            const json = tempFabric.toJSON(['selectable', 'evented', 'hoverCursor', 'svgTagName', 'svgIsText']);
             tempFabric.dispose();
             resolve(json);
           }).catch(err => {
