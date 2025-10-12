@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF to SVG Fabric Editor</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      background: #f2f4f8;
+      color: #202124;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 1.5rem;
+      background: linear-gradient(135deg, #003973, #e5e5be);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    header h1 {
+      margin: 0 0 0.5rem;
+      font-size: 1.75rem;
+      letter-spacing: 0.04em;
+    }
+    header p {
+      margin: 0;
+      max-width: 60ch;
+    }
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: minmax(260px, 320px) 1fr;
+      gap: 1rem;
+      padding: 1.5rem;
+      box-sizing: border-box;
+    }
+    @media (max-width: 900px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+    .panel {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .panel h2 {
+      font-size: 1.1rem;
+      margin: 0;
+      color: #0b3d91;
+    }
+    .control {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    label {
+      font-weight: 600;
+    }
+    input[type="file"], select, button {
+      padding: 0.65rem 0.75rem;
+      font-size: 0.95rem;
+      border-radius: 8px;
+      border: 1px solid #cfd6e6;
+      background: #f7f9fc;
+      transition: border 0.2s ease, box-shadow 0.2s ease;
+    }
+    input[type="file"]:focus-visible,
+    select:focus-visible,
+    button:focus-visible {
+      outline: none;
+      border-color: #3f51b5;
+      box-shadow: 0 0 0 3px rgba(63,81,181,0.2);
+    }
+    button {
+      background: #0b3d91;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+    }
+    button:disabled {
+      background: #9aa5bc;
+      cursor: not-allowed;
+    }
+    fieldset {
+      border: 1px solid #d7deed;
+      border-radius: 10px;
+      padding: 0.75rem 1rem 1rem;
+    }
+    fieldset legend {
+      padding: 0 0.35rem;
+      font-weight: 600;
+    }
+    .radio-group {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .radio-group label {
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      cursor: pointer;
+    }
+    .canvas-wrap {
+      position: relative;
+      background: repeating-conic-gradient(#f9fafc 0 25%, #eef1f7 0 50%) 0 0/20px 20px;
+      border-radius: 14px;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05), 0 18px 36px rgba(15,23,42,0.18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      overflow: auto;
+    }
+    canvas {
+      background: #ffffff;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+      border-radius: 6px;
+    }
+    .status {
+      font-size: 0.85rem;
+      color: #555b6e;
+      min-height: 1.25rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Precision PDF Editor</h1>
+    <p>Import a PDF, convert each page to scalable SVG layers, edit with Fabric.js, and export a fresh PDF while preserving measurements.</p>
+  </header>
+  <main>
+    <section class="panel" aria-label="Controls">
+      <div class="control">
+        <label for="pdfInput">Import PDF</label>
+        <input id="pdfInput" type="file" accept="application/pdf" />
+      </div>
+      <div class="control" id="pageControl" hidden>
+        <label for="pageSelect">Page</label>
+        <select id="pageSelect"></select>
+      </div>
+      <fieldset>
+        <legend>Pointer Target</legend>
+        <div class="radio-group">
+          <label><input type="radio" name="pointerMode" value="objects" checked /> Objects</label>
+          <label><input type="radio" name="pointerMode" value="text" /> Text only</label>
+        </div>
+      </fieldset>
+      <button id="exportPdf" type="button" disabled>Export to PDF</button>
+      <div class="status" id="status" role="status" aria-live="polite"></div>
+    </section>
+    <section class="canvas-wrap" aria-label="Canvas">
+      <canvas id="editorCanvas"></canvas>
+    </section>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha512-CqSeXyKOqlUm9zJuBp63qyoFwchqkj61+1zR2M3KS5Cv7/ULrRH7nDwXQzJqBGBWAz9bn22FvOIxUJ6aWbkH7Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script>
+    if (!window.pdfjsLib) {
+      throw new Error('Unable to load pdf.js library.');
+    }
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/6.0.1/fabric.min.js" integrity="sha512-T6EYemAJWRPl2loZDr+Y54OJ52zbWezDBMCDHfAcq1LYqWwb0yaI3suu8IUeckKpDjl3AUWS2LHkP88jTHVUNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-lNv0bHQwZ0pniS3pSkeCZMt2rt7NmBGG99nmHn7+O+kO5OVwOB1p5MNDoAuCEi0aKBslZx2drXr/7L0d0Na6JQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script>
+    (function() {
+      const { jsPDF } = window.jspdf;
+      const pdfInput = document.getElementById('pdfInput');
+      const pageControl = document.getElementById('pageControl');
+      const pageSelect = document.getElementById('pageSelect');
+      const statusEl = document.getElementById('status');
+      const exportBtn = document.getElementById('exportPdf');
+      const canvasEl = document.getElementById('editorCanvas');
+      const pointerInputs = document.querySelectorAll('input[name="pointerMode"]');
+
+      const canvas = new fabric.Canvas(canvasEl, {
+        backgroundColor: '#ffffff',
+        selection: true,
+        preserveObjectStacking: true,
+      });
+      canvas.setWidth(794);
+      canvas.setHeight(1123);
+
+      const textTypes = new Set(['text', 'textbox', 'i-text']);
+
+      let pdfDoc = null;
+      let totalPages = 0;
+      let currentPage = null;
+      let currentPointerMode = 'objects';
+      const pageCache = new Map();
+
+      pointerInputs.forEach(input => {
+        input.addEventListener('change', () => {
+          if (input.checked) {
+            currentPointerMode = input.value;
+            applyPointerMode();
+          }
+        });
+      });
+
+      canvas.on('object:added', () => {
+        applyPointerMode();
+      });
+
+      canvas.on('object:removed', applyPointerMode);
+
+      pdfInput.addEventListener('change', async (event) => {
+        const file = event.target.files && event.target.files[0];
+        resetState();
+        if (!file) {
+          statusEl.textContent = '';
+          return;
+        }
+        try {
+          statusEl.textContent = 'Loading PDF…';
+          const arrayBuffer = await file.arrayBuffer();
+          pdfDoc = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          totalPages = pdfDoc.numPages;
+          populatePageSelect(totalPages);
+          exportBtn.disabled = false;
+          await loadPage(1);
+          statusEl.textContent = `Loaded \"${file.name}\" (${pdfDoc.numPages} page${pdfDoc.numPages > 1 ? 's' : ''}).`;
+        } catch (error) {
+          console.error(error);
+          statusEl.textContent = 'Failed to load PDF. See console for details.';
+        }
+      });
+
+      pageSelect.addEventListener('change', async () => {
+        const targetPage = Number(pageSelect.value);
+        if (!Number.isNaN(targetPage) && targetPage !== currentPage) {
+          await loadPage(targetPage);
+        }
+      });
+
+      exportBtn.addEventListener('click', () => {
+        if (!pdfDoc) {
+          return;
+        }
+        if (currentPage) {
+          storeCurrentPageState();
+        }
+        exportDocument().catch(error => {
+          console.error(error);
+          statusEl.textContent = 'Failed to export PDF.';
+        });
+      });
+
+      async function loadPage(pageNumber) {
+        if (!pdfDoc) return;
+        if (currentPage) {
+          storeCurrentPageState();
+        }
+        const { svgMarkup, width, height, fabricJSON } = await getPageState(pageNumber);
+        canvas.clear();
+        canvas.setBackgroundColor('#ffffff', canvas.renderAll.bind(canvas));
+        canvas.setWidth(width);
+        canvas.setHeight(height);
+        canvas.calcOffset();
+        if (fabricJSON) {
+          await loadFromJSONAsync(fabricJSON);
+        } else {
+          await loadSvgIntoCanvas(svgMarkup, canvas);
+        }
+        canvas.renderAll();
+        applyPointerMode();
+        currentPage = pageNumber;
+        pageSelect.value = String(pageNumber);
+        statusEl.textContent = `Editing page ${pageNumber} of ${pdfDoc.numPages}.`;
+      }
+
+      function applyPointerMode() {
+        const isTextMode = currentPointerMode === 'text';
+        canvas.selection = !isTextMode;
+        canvas.defaultCursor = isTextMode ? 'text' : 'default';
+        canvas.forEachObject(obj => {
+          const isText = textTypes.has(obj.type);
+          const selectable = !isTextMode || isText;
+          obj.selectable = selectable;
+          obj.evented = selectable;
+          obj.hoverCursor = isText ? 'text' : 'move';
+          if (!selectable && obj.isEditing) {
+            obj.exitEditing();
+          }
+        });
+        canvas.requestRenderAll();
+      }
+
+      async function getPageState(pageNumber) {
+        if (pageCache.has(pageNumber)) {
+          return pageCache.get(pageNumber);
+        }
+        const page = await pdfDoc.getPage(pageNumber);
+        const viewport = page.getViewport({ scale: 1 });
+        const operatorList = await page.getOperatorList();
+        const svgGfx = new window.pdfjsLib.SVGGraphics(page.commonObjs, page.objs);
+        svgGfx.embedFonts = true;
+        const svg = await svgGfx.getSVG(operatorList, viewport);
+        const serializer = new XMLSerializer();
+        const svgMarkup = serializer.serializeToString(svg);
+        const width = viewport.width;
+        const height = viewport.height;
+        const state = { svgMarkup, width, height, fabricJSON: null };
+        pageCache.set(pageNumber, state);
+        return state;
+      }
+
+      async function loadSvgIntoCanvas(svgMarkup, targetCanvas) {
+        return new Promise((resolve, reject) => {
+          fabric.loadSVGFromString(svgMarkup, (objects, options) => {
+            try {
+              const canvasWidth = typeof targetCanvas.getWidth === 'function' ? targetCanvas.getWidth() : targetCanvas.width;
+              const canvasHeight = typeof targetCanvas.getHeight === 'function' ? targetCanvas.getHeight() : targetCanvas.height;
+              const baseWidth = options.viewBoxWidth || options.width || canvasWidth;
+              const baseHeight = options.viewBoxHeight || options.height || canvasHeight;
+              const scaleX = baseWidth ? canvasWidth / baseWidth : 1;
+              const scaleY = baseHeight ? canvasHeight / baseHeight : 1;
+              objects.forEach(obj => {
+                const left = (obj.left || 0) * scaleX;
+                const top = (obj.top || 0) * scaleY;
+                const oScaleX = (obj.scaleX || 1) * scaleX;
+                const oScaleY = (obj.scaleY || 1) * scaleY;
+                obj.set({
+                  left,
+                  top,
+                  scaleX: oScaleX,
+                  scaleY: oScaleY,
+                  originX: 'left',
+                  originY: 'top',
+                  selectable: true,
+                  evented: true,
+                });
+                obj.setCoords && obj.setCoords();
+                targetCanvas.add(obj);
+              });
+              targetCanvas.discardActiveObject && targetCanvas.discardActiveObject();
+              targetCanvas.requestRenderAll && targetCanvas.requestRenderAll();
+              targetCanvas.renderAll && targetCanvas.renderAll();
+              resolve();
+            } catch (err) {
+              reject(err);
+            }
+          }, (item, object) => {
+            object._fromSVG = true;
+          });
+        });
+      }
+
+      function loadFromJSONAsync(json) {
+        return new Promise(resolve => {
+          canvas.loadFromJSON(json, () => {
+            canvas.renderAll();
+            resolve();
+          });
+        });
+      }
+
+      function storeCurrentPageState() {
+        if (!currentPage || !pageCache.has(currentPage)) return;
+        const json = canvas.toJSON(['selectable', 'evented', 'hoverCursor']);
+        const entry = pageCache.get(currentPage);
+        entry.fabricJSON = json;
+        pageCache.set(currentPage, entry);
+      }
+
+      function populatePageSelect(count) {
+        pageSelect.innerHTML = '';
+        for (let i = 1; i <= count; i++) {
+          const option = document.createElement('option');
+          option.value = String(i);
+          option.textContent = `Page ${i}`;
+          pageSelect.appendChild(option);
+        }
+        pageControl.hidden = false;
+      }
+
+      function resetState() {
+        canvas.clear();
+        canvas.setBackgroundColor('#ffffff', canvas.renderAll.bind(canvas));
+        pdfDoc = null;
+        currentPage = null;
+        pageCache.clear();
+        pageControl.hidden = true;
+        pageSelect.innerHTML = '';
+        exportBtn.disabled = true;
+        totalPages = 0;
+        statusEl.textContent = '';
+      }
+
+      async function exportDocument() {
+        if (!totalPages) {
+          statusEl.textContent = 'No pages to export yet.';
+          return;
+        }
+        const pages = Array.from({ length: totalPages }, (_, idx) => idx + 1);
+        const firstState = await getPageState(pages[0]);
+        const orientation = firstState.width >= firstState.height ? 'landscape' : 'portrait';
+        const pdf = new jsPDF({
+          orientation,
+          unit: 'pt',
+          format: [firstState.width, firstState.height],
+          putOnlyUsedFonts: true,
+        });
+        for (let index = 0; index < pages.length; index++) {
+          const pageNumber = pages[index];
+          const state = await getPageState(pageNumber);
+          if (!state.fabricJSON) {
+            state.fabricJSON = await convertSvgStateToJSON(state);
+            pageCache.set(pageNumber, state);
+          }
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = state.width;
+          tempCanvas.height = state.height;
+          const tempFabric = new fabric.StaticCanvas(tempCanvas, { backgroundColor: '#ffffff' });
+          await new Promise(resolve => {
+            tempFabric.loadFromJSON(state.fabricJSON, () => {
+              tempFabric.renderAll();
+              resolve();
+            });
+          });
+          tempFabric.renderAll();
+          const dataUrl = tempCanvas.toDataURL('image/png');
+          if (index > 0) {
+            pdf.addPage([state.width, state.height], state.width >= state.height ? 'landscape' : 'portrait');
+          }
+          pdf.setPage(index + 1);
+          pdf.addImage(dataUrl, 'PNG', 0, 0, state.width, state.height);
+          tempFabric.dispose();
+        }
+        pdf.save('edited.pdf');
+        statusEl.textContent = 'Exported PDF saved.';
+      }
+
+      function convertSvgStateToJSON(state) {
+        return new Promise((resolve, reject) => {
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = state.width;
+          tempCanvas.height = state.height;
+          const tempFabric = new fabric.StaticCanvas(tempCanvas, { backgroundColor: '#ffffff' });
+          loadSvgIntoCanvas(state.svgMarkup, tempFabric).then(() => {
+            const json = tempFabric.toJSON(['selectable', 'evented', 'hoverCursor']);
+            tempFabric.dispose();
+            resolve(json);
+          }).catch(err => {
+            tempFabric.dispose();
+            reject(err);
+          });
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
