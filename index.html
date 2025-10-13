@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HTML to PDF Exporter</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <h1>HTML to PDF Exporter</h1>
+      <p>
+        Load an HTML document to preview it and export it as a PDF using the
+        browser's built-in print-to-PDF capability.
+      </p>
+    </header>
+
+    <main>
+      <section class="input-panel">
+        <label class="file-selector" for="htmlFileInput">
+          <span class="selector-label">Choose an HTML file</span>
+          <input type="file" id="htmlFileInput" accept="text/html,.html,.htm" />
+        </label>
+
+        <div class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="Upload HTML file">
+          <p>Or drag &amp; drop an HTML file here</p>
+        </div>
+
+        <div class="controls">
+          <button id="printButton" class="primary" disabled>Export to PDF</button>
+          <button id="clearButton" disabled>Clear</button>
+        </div>
+
+        <p class="status" id="statusMessage">No file loaded.</p>
+      </section>
+
+      <section class="preview-panel">
+        <h2>Preview</h2>
+        <div class="frame-wrapper">
+          <iframe id="previewFrame" title="Document preview" sandbox="allow-same-origin allow-scripts"></iframe>
+        </div>
+      </section>
+    </main>
+
+    <script src="scripts/exporter.js" type="module"></script>
+  </body>
+</html>

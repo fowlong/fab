@@ -1,0 +1,192 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background-color: #f7f7f7;
+  color: #1d1d1f;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  padding: 2rem 3vw 1.5rem;
+  background: linear-gradient(135deg, #3145ff, #7f56d9);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(23, 26, 68, 0.3);
+}
+
+.app-header h1 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+}
+
+.app-header p {
+  margin: 0;
+  font-size: 1rem;
+  max-width: 60ch;
+}
+
+main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) 1fr;
+  gap: 2rem;
+  padding: 2rem 3vw 3rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  main {
+    grid-template-columns: 1fr;
+  }
+}
+
+.input-panel {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.file-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  cursor: pointer;
+  border: 2px dashed #7f56d9;
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.file-selector:hover,
+.file-selector:focus-within {
+  background: rgba(127, 86, 217, 0.1);
+  border-color: #5b3ab7;
+}
+
+.file-selector input {
+  display: none;
+}
+
+.drop-zone {
+  border: 2px dashed #c3c6d3;
+  border-radius: 12px;
+  padding: 2rem 1rem;
+  text-align: center;
+  color: #6b7280;
+  background-color: #fafafa;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.drop-zone.dragover {
+  border-color: #7f56d9;
+  background-color: rgba(127, 86, 217, 0.08);
+  color: #4338ca;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  padding: 0.6rem 1.1rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  background: #d1d5db;
+  color: #1f2937;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+button.primary {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  box-shadow: none;
+}
+
+button:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.35);
+}
+
+.status {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #4b5563;
+  min-height: 1.25rem;
+}
+
+.status[data-type='error'] {
+  color: #b91c1c;
+}
+
+.status[data-type='success'] {
+  color: #047857;
+}
+
+.preview-panel {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.preview-panel h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.frame-wrapper {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  min-height: 60vh;
+}
+
+iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #fff;
+}
+
+@media (max-width: 600px) {
+  body {
+    font-size: 16px;
+  }
+
+  .app-header,
+  main {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+
+  .input-panel,
+  .preview-panel {
+    padding: 1.25rem;
+  }
+}
