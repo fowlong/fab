@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HTML to PDF Exporter</title>
+  <link rel="stylesheet" href="styles/html-to-pdf.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="app__header">
+      <h1>HTML to PDF Exporter</h1>
+      <p>Select a local HTML file or paste a URL to load the document and export it to PDF.</p>
+    </header>
+    <section class="app__inputs">
+      <div class="input-group">
+        <label for="file-input" class="input-label">Upload HTML File</label>
+        <input type="file" id="file-input" accept="text/html,.html" />
+      </div>
+      <div class="input-group">
+        <label for="url-input" class="input-label">Load from URL</label>
+        <div class="url-controls">
+          <input type="url" id="url-input" placeholder="https://example.com/page.html" />
+          <button type="button" id="load-url">Load</button>
+        </div>
+      </div>
+      <div class="input-group">
+        <label for="raw-html" class="input-label">Or paste raw HTML</label>
+        <textarea id="raw-html" rows="6" placeholder="&lt;!DOCTYPE html&gt;..."></textarea>
+        <button type="button" id="load-raw">Load Raw HTML</button>
+      </div>
+    </section>
+
+    <section class="app__actions">
+      <button type="button" id="clear">Clear</button>
+      <button type="button" id="print" disabled>Export to PDF</button>
+    </section>
+
+    <section class="app__preview">
+      <h2>Document Preview</h2>
+      <p class="app__preview-note">
+        The preview appears exactly as it will be printed. Use the "Export to PDF" button to
+        trigger the browser's print dialog and save the document as a PDF.
+      </p>
+      <iframe id="preview-frame" title="Document preview"></iframe>
+    </section>
+  </main>
+
+  <script src="scripts/html-to-pdf.js"></script>
+</body>
+</html>
