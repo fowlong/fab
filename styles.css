@@ -1,0 +1,147 @@
+:root {
+  color-scheme: light dark;
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: #f8f9fb;
+  color: #1b1b1f;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  padding: 2.5rem 3rem 1rem;
+  background: linear-gradient(120deg, #4c6ef5, #9775fa);
+  color: #fff;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.18);
+}
+
+header h1 {
+  margin: 0 0 0.75rem;
+  font-size: clamp(2rem, 4vw, 2.5rem);
+}
+
+header p {
+  margin: 0;
+  font-size: 1.1rem;
+  max-width: 40rem;
+}
+
+main {
+  flex: 1;
+  display: grid;
+  gap: 2rem;
+  padding: 2rem 3rem 3rem;
+  grid-template-columns: minmax(18rem, 22rem) 1fr;
+  align-items: start;
+}
+
+.controls {
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 1rem 2rem rgba(76, 110, 245, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.control-group {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.control-label {
+  font-weight: 600;
+}
+
+.url-input {
+  display: flex;
+  gap: 0.5rem;
+}
+
+input[type="file"],
+input[type="url"] {
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(27, 27, 31, 0.2);
+  font: inherit;
+}
+
+input[type="url"] {
+  flex: 1;
+}
+
+button {
+  padding: 0.6rem 1.1rem;
+  border-radius: 0.65rem;
+  border: none;
+  background: #4c6ef5;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 0.4rem 1.2rem rgba(76, 110, 245, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+button:disabled {
+  background: #d0d4f8;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+button:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.6rem 1.6rem rgba(76, 110, 245, 0.4);
+}
+
+.preview {
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 1rem 2rem rgba(76, 110, 245, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 24rem;
+}
+
+.preview h2 {
+  margin: 0;
+}
+
+iframe {
+  flex: 1;
+  width: 100%;
+  min-height: 60vh;
+  border: 1px solid rgba(27, 27, 31, 0.15);
+  border-radius: 0.75rem;
+  background: #f2f3f7;
+}
+
+.loading-state {
+  display: grid;
+  place-items: center;
+  padding: 4rem 0;
+  font-size: 1.2rem;
+  color: #4c6ef5;
+}
+
+.help-text {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(27, 27, 31, 0.6);
+}
+
+@media (max-width: 960px) {
+  main {
+    grid-template-columns: 1fr;
+  }
+
+  .preview {
+    min-height: 18rem;
+  }
+}

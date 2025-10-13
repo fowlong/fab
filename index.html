@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTML to PDF Exporter</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>HTML to PDF Exporter</h1>
+    <p>Load any HTML document and export it just as if it were printed to PDF.</p>
+  </header>
+
+  <main>
+    <section class="controls">
+      <div class="control-group">
+        <label for="localFile" class="control-label">Select a local HTML file</label>
+        <input type="file" id="localFile" accept="text/html,.html,.htm">
+        <button id="loadLocal" type="button">Load Local HTML</button>
+      </div>
+
+      <div class="control-group">
+        <label for="remoteUrl" class="control-label">Or load an HTML document from a URL</label>
+        <div class="url-input">
+          <input type="url" id="remoteUrl" placeholder="https://example.com/document.html">
+          <button id="loadRemote" type="button">Load URL</button>
+        </div>
+        <p class="help-text">The URL must allow cross-origin requests so that it can be previewed.</p>
+      </div>
+
+      <div class="control-group">
+        <button id="export" type="button" disabled>Export to PDF</button>
+      </div>
+    </section>
+
+    <section class="preview">
+      <h2>Preview</h2>
+      <iframe id="previewFrame" title="Document preview"></iframe>
+    </section>
+  </main>
+
+  <script src="exporter.js"></script>
+</body>
+</html>
