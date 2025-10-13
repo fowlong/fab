@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HTML to PDF Exporter</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color-scheme: light dark;
+        --surface: rgba(255, 255, 255, 0.82);
+        --border: rgba(15, 23, 42, 0.12);
+        --bg: #eef2f7;
+        --text-subtle: rgba(15, 23, 42, 0.65);
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg);
+        color: inherit;
+      }
+
+      header {
+        padding: clamp(1rem, 4vw, 1.8rem) clamp(1rem, 6vw, 2.6rem);
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+        backdrop-filter: blur(18px);
+      }
+
+      header h1 {
+        margin: 0;
+        font-weight: 600;
+        font-size: clamp(1.4rem, 4vw, 2.1rem);
+      }
+
+      header p {
+        margin: 0.4rem 0 0;
+        max-width: 60ch;
+        color: var(--text-subtle);
+        font-size: 0.95rem;
+      }
+
+      main {
+        flex: 1;
+        min-height: 0;
+        display: grid;
+        grid-template-columns: minmax(320px, 420px) 1fr;
+      }
+
+      @media (max-width: 960px) {
+        main {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto minmax(50vh, 1fr);
+        }
+      }
+
+      .controls {
+        padding: clamp(1rem, 3vw, 1.8rem);
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+        overflow-y: auto;
+      }
+
+      @media (max-width: 960px) {
+        .controls {
+          border-right: none;
+          border-bottom: 1px solid var(--border);
+        }
+      }
+
+      .controls h2 {
+        margin-top: 0;
+        font-size: 1.05rem;
+      }
+
+      label {
+        display: block;
+        font-size: 0.9rem;
+        font-weight: 500;
+        margin-top: 1rem;
+      }
+
+      input[type="file"],
+      select,
+      input[type="text"] {
+        margin-top: 0.5rem;
+        width: 100%;
+        box-sizing: border-box;
+        font: inherit;
+        border-radius: 0.65rem;
+        border: 1px solid rgba(15, 23, 42, 0.2);
+        padding: 0.55rem 0.75rem;
+        background: rgba(255, 255, 255, 0.9);
+      }
+
+      .inline {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 0.75rem;
+      }
+
+      button {
+        margin-top: 1.4rem;
+        padding: 0.7rem 1.4rem;
+        border-radius: 999px;
+        border: none;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+        background: linear-gradient(120deg, #2563eb, #3b82f6);
+        color: white;
+        box-shadow: 0 12px 32px rgba(37, 99, 235, 0.22);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+      }
+
+      button:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 14px 36px rgba(37, 99, 235, 0.28);
+      }
+
+      .status {
+        margin-top: 0.75rem;
+        color: var(--text-subtle);
+        font-size: 0.9rem;
+        min-height: 1.5rem;
+      }
+
+      .preview {
+        background: #0f172a;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .preview iframe {
+        flex: 1;
+        width: 100%;
+        border: none;
+        background: white;
+      }
+
+      .preview-empty {
+        color: rgba(226, 232, 240, 0.75);
+        text-align: center;
+        margin: auto;
+        max-width: min(520px, 90%);
+        line-height: 1.55;
+        font-size: 1rem;
+      }
+
+      .hint {
+        margin-top: 0.5rem;
+        font-size: 0.85rem;
+        color: var(--text-subtle);
+      }
+
+      .options-grid {
+        display: grid;
+        gap: 0.75rem;
+        margin-top: 0.75rem;
+      }
+
+      .options-grid label {
+        margin-top: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>HTML to PDF Exporter</h1>
+      <p>
+        Load a local HTML document, preview it in the browser, and export a PDF that matches
+        the browser's print output.
+      </p>
+    </header>
+    <main>
+      <section class="controls" aria-label="HTML to PDF controls">
+        <h2>1. Load your HTML file</h2>
+        <label for="html-file">Choose an HTML document</label>
+        <input id="html-file" type="file" accept="text/html,.html,.htm" />
+        <p class="hint">Files are processed locally and never leave your browser.</p>
+
+        <label for="base-url">Optional asset base URL</label>
+        <input id="base-url" type="text" placeholder="https://example.com/" />
+        <p class="hint">
+          Supply a base URL if your document references external stylesheets or assets using relative
+          paths.
+        </p>
+
+        <h2>2. Export settings</h2>
+        <div class="options-grid">
+          <label for="page-format">Page size</label>
+          <select id="page-format">
+            <option value="a4" selected>A4</option>
+            <option value="letter">US Letter</option>
+            <option value="legal">US Legal</option>
+            <option value="a3">A3</option>
+          </select>
+
+          <label for="orientation">Orientation</label>
+          <select id="orientation">
+            <option value="portrait" selected>Portrait</option>
+            <option value="landscape">Landscape</option>
+          </select>
+
+          <label for="print-background">
+            <input id="print-background" type="checkbox" /> Include background graphics
+          </label>
+        </div>
+
+        <button id="export" type="button" disabled>Export to PDF</button>
+        <p class="status" role="status" aria-live="polite" id="status">Load a document to begin.</p>
+      </section>
+      <section class="preview" aria-label="Document preview">
+        <div class="preview-empty" id="preview-empty">
+          Drop an HTML file here or use the picker to preview your document before exporting.
+        </div>
+        <iframe id="preview-frame" title="HTML preview" hidden></iframe>
+      </section>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-YcsIP+g2oho4rKQkY36HoD6AsVzTdDEr1xgG+Z6kTpsuRWpuHBs0IX1FkJpX+P5sH0KCvCflhFMdQ8GcHZDzxw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script type="module" src="scripts/html-to-pdf.js"></script>
+  </body>
+</html>
