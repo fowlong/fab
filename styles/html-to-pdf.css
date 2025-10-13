@@ -1,0 +1,227 @@
+:root {
+  color-scheme: light dark;
+  font-family: 'Segoe UI', Roboto, sans-serif;
+  background-color: #f5f5f5;
+  color: #222;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-header {
+  padding: 2rem clamp(1rem, 3vw, 2rem) 1rem;
+  background: linear-gradient(120deg, #5568ff, #6ec6ff);
+  color: white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.page-header h1 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+}
+
+.page-header p {
+  margin: 0;
+  max-width: 60ch;
+  font-size: 1rem;
+}
+
+.layout {
+  display: grid;
+  gap: 2rem;
+  padding: 2rem clamp(1rem, 4vw, 3rem) 3rem;
+  grid-template-columns: minmax(260px, 320px) 1fr;
+  flex: 1;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.controls {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 16px 40px rgba(31, 38, 135, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.controls h2 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.file-input {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: 2px dashed rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  background-color: rgba(85, 104, 255, 0.08);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.file-input:hover,
+.file-input:focus-within {
+  background-color: rgba(85, 104, 255, 0.15);
+  border-color: rgba(85, 104, 255, 0.8);
+}
+
+.file-input input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  resize: vertical;
+  min-height: 180px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.button {
+  appearance: none;
+  border: none;
+  border-radius: 999px;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  background-color: rgba(0, 0, 0, 0.08);
+  color: inherit;
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.button--primary {
+  background: linear-gradient(135deg, #5568ff, #6ec6ff);
+  color: white;
+}
+
+.or-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: rgba(0, 0, 0, 0.5);
+  font-size: 0.85rem;
+}
+
+.or-divider__line {
+  flex: 1;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.preview {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-shadow: 0 24px 40px rgba(31, 38, 135, 0.1);
+  min-height: 60vh;
+}
+
+.preview__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.preview__header h2 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.preview__filename {
+  font-size: 0.95rem;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.preview iframe,
+#previewFrame {
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  flex: 1;
+  min-height: 400px;
+  width: 100%;
+  background: white;
+}
+
+.status {
+  min-height: 1.2em;
+  font-size: 0.9rem;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.status[data-tone='error'] {
+  color: #c0392b;
+}
+
+.status[data-tone='success'] {
+  color: #1b9e5f;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    background-color: #0f172a;
+    color: #e2e8f0;
+  }
+
+  .controls,
+  .preview {
+    background: #111827;
+    box-shadow: 0 20px 45px rgba(15, 23, 42, 0.7);
+  }
+
+  .file-input {
+    border-color: rgba(148, 163, 184, 0.35);
+    background-color: rgba(85, 104, 255, 0.2);
+  }
+
+  textarea {
+    background: #0f172a;
+    border-color: rgba(148, 163, 184, 0.2);
+    color: inherit;
+  }
+
+  .preview iframe,
+  #previewFrame {
+    border-color: rgba(148, 163, 184, 0.25);
+  }
+
+  .status {
+    color: rgba(226, 232, 240, 0.75);
+  }
+}

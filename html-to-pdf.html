@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTML to PDF Exporter</title>
+  <link rel="stylesheet" href="styles/html-to-pdf.css">
+</head>
+<body>
+  <header class="page-header">
+    <h1>HTML to PDF Exporter</h1>
+    <p>Load an HTML document to preview it and export the rendered result to PDF using your browser's print-to-PDF capability.</p>
+  </header>
+
+  <main class="layout" aria-live="polite">
+    <section class="controls" aria-label="Load HTML">
+      <h2>Load a document</h2>
+      <label class="file-input" for="fileInput">
+        <span>Select an HTML file</span>
+        <input id="fileInput" type="file" accept="text/html,.html">
+      </label>
+
+      <div class="or-divider" role="presentation">
+        <span class="or-divider__line"></span>
+        <span class="or-divider__text">or</span>
+        <span class="or-divider__line"></span>
+      </div>
+
+      <label class="paste-label" for="htmlTextarea">Paste HTML markup</label>
+      <textarea id="htmlTextarea" rows="10" placeholder="Paste HTML markup here..."></textarea>
+      <button id="loadMarkup" type="button" class="button">Load pasted markup</button>
+
+      <button id="exportButton" type="button" class="button button--primary" disabled>Export to PDF</button>
+      <p id="statusMessage" class="status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="preview" aria-label="Document preview">
+      <div class="preview__header">
+        <h2>Preview</h2>
+        <span id="documentName" class="preview__filename" aria-live="polite"></span>
+      </div>
+      <iframe id="previewFrame" title="Preview of loaded HTML document"></iframe>
+    </section>
+  </main>
+
+  <template id="printStyleTemplate">
+    <style>
+      @page {
+        margin: 1in;
+      }
+
+      body {
+        margin: 0;
+      }
+    </style>
+  </template>
+
+  <script src="scripts/html-to-pdf.js" type="module"></script>
+</body>
+</html>
