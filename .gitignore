@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.vite/
+frontend/node_modules/
+pdf-editor/frontend/node_modules/
+pdf-editor/frontend/dist/
+target/
+pdf-editor/backend/target/
+.DS_Store
