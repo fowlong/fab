@@ -1,0 +1,11 @@
+# Frontend dependencies and build artifacts
+frontend/node_modules/
+frontend/dist/
+
+# Backend build artifacts
+target/
+
+# IDE settings
+.vscode/
+.idea/
+.DS_Store

@@ -1,0 +1,102 @@
+:root {
+  color-scheme: light dark;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: #f5f5f5;
+  color: #1a1a1a;
+}
+
+body,
+html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  display: flex;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  width: 100%;
+  height: 100vh;
+}
+
+.sidebar {
+  background: #ffffff;
+  border-right: 1px solid #dcdcdc;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sidebar h1 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.file-upload {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+.file-upload input[type='file'] {
+  display: block;
+}
+
+.editor {
+  overflow: auto;
+  padding: 2rem;
+  background: #fafafa;
+}
+
+.page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.page-wrapper {
+  position: relative;
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
+  background: white;
+}
+
+.page-wrapper.placeholder {
+  border: 1px dashed #cbd5f5;
+}
+
+.pdf-canvas,
+.fabric-overlay {
+  display: block;
+}
+
+.fabric-overlay {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: auto;
+}
+
+#status {
+  min-height: 1.25rem;
+  font-size: 0.875rem;
+  color: #475569;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

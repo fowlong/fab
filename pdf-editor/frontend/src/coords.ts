@@ -1,0 +1,51 @@
+import type { Matrix } from './types';
+
+export const POINTS_PER_PIXEL = 72 / 96;
+
+export function multiplyMatrix(a: Matrix, b: Matrix): Matrix {
+  const [a0, a1, a2, a3, a4, a5] = a;
+  const [b0, b1, b2, b3, b4, b5] = b;
+  return [
+    a0 * b0 + a2 * b1,
+    a1 * b0 + a3 * b1,
+    a0 * b2 + a2 * b3,
+    a1 * b2 + a3 * b3,
+    a0 * b4 + a2 * b5 + a4,
+    a1 * b4 + a3 * b5 + a5
+  ];
+}
+
+export function invertMatrix(m: Matrix): Matrix {
+  const [a, b, c, d, e, f] = m;
+  const det = a * d - b * c;
+  if (Math.abs(det) < Number.EPSILON) {
+    throw new Error('Matrix not invertible');
+  }
+  const invDet = 1 / det;
+  const na = d * invDet;
+  const nb = -b * invDet;
+  const nc = -c * invDet;
+  const nd = a * invDet;
+  const ne = -(na * e + nc * f);
+  const nf = -(nb * e + nd * f);
+  return [na, nb, nc, nd, ne, nf];
+}
+
+export function pxToPtMatrix(pageHeightPt: number): Matrix {
+  return [POINTS_PER_PIXEL, 0, 0, -POINTS_PER_PIXEL, 0, pageHeightPt];
+}
+
+export function ptToPxMatrix(pageHeightPt: number): Matrix {
+  return invertMatrix(pxToPtMatrix(pageHeightPt));
+}
+
+export function fabricDeltaToPdfDelta(
+  previous: Matrix,
+  next: Matrix,
+  pageHeightPt: number
+): Matrix {
+  const deltaFabric = multiplyMatrix(next, invertMatrix(previous));
+  const pxToPt = pxToPtMatrix(pageHeightPt);
+  const ptToPx = invertMatrix(pxToPt);
+  return multiplyMatrix(multiplyMatrix(pxToPt, deltaFabric), ptToPx);
+}
