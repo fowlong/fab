@@ -3,43 +3,52 @@ import workerSrc from 'pdfjs-dist/build/pdf.worker?url';
 
 GlobalWorkerOptions.workerSrc = workerSrc;
 
+export type PageRender = {
+  canvas: HTMLCanvasElement;
+  widthPx: number;
+  heightPx: number;
+  widthPt: number;
+  heightPt: number;
+};
+
 export class PdfPreview {
   private container: HTMLElement;
   private pdf: PDFDocumentProxy | null = null;
-  private pageSizes: Array<{ width: number; height: number }> = [];
 
   constructor(container: HTMLElement) {
     this.container = container;
   }
 
-  async load(arrayBuffer: ArrayBuffer) {
+  async renderFirstPage(data: ArrayBuffer): Promise<PageRender> {
     this.reset();
-    this.pdf = await getDocument({ data: arrayBuffer }).promise;
-    this.pageSizes = [];
-    for (let pageIndex = 1; pageIndex <= this.pdf.numPages; pageIndex += 1) {
-      const page = await this.pdf.getPage(pageIndex);
-      const viewport = page.getViewport({ scale: 1 });
-      const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      canvas.className = 'pdf-page-canvas';
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        throw new Error('Failed to get canvas context');
-      }
-      await page.render({ canvasContext: ctx, viewport }).promise;
-      this.container.appendChild(canvas);
-      this.pageSizes.push({ width: viewport.width, height: viewport.height });
+    this.pdf = await getDocument({ data }).promise;
+    const page = await this.pdf.getPage(1);
+    const viewport = page.getViewport({ scale: 1 });
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.ceil(viewport.width);
+    canvas.height = Math.ceil(viewport.height);
+    canvas.className = 'pdf-underlay';
+    const context = canvas.getContext('2d');
+    if (!context) {
+      throw new Error('Failed to obtain canvas context');
     }
+    await page.render({ canvasContext: context, viewport }).promise;
+    canvas.style.width = `${canvas.width}px`;
+    canvas.style.height = `${canvas.height}px`;
+    this.container.innerHTML = '';
+    this.container.appendChild(canvas);
+    const [x0, y0, x1, y1] = page.view;
+    return {
+      canvas,
+      widthPx: canvas.width,
+      heightPx: canvas.height,
+      widthPt: x1 - x0,
+      heightPt: y1 - y0,
+    };
   }
 
   reset() {
     this.container.innerHTML = '';
     this.pdf = null;
-    this.pageSizes = [];
-  }
-
-  getSizes() {
-    return [...this.pageSizes];
   }
 }

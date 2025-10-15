@@ -98,17 +98,16 @@ body {
   inset: 0;
 }
 
-.fabric-page-overlay {
-  position: absolute;
-  inset: 0;
-}
-
 .page-wrapper__overlay canvas {
   display: block;
 }
 
-.pdf-page-canvas {
+.pdf-underlay {
   width: 100%;
   height: auto;
   display: block;
+}
+.fabric-overlay {
+  position: absolute;
+  inset: 0;
 }

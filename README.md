@@ -1,6 +1,6 @@
 # PDF Editor
 
-This repository hosts an experimental PDF editor that combines a Fabric.js overlay with a PDF.js bitmap underlay to offer direct manipulation of true PDF content streams. The long-term goal is a full incremental editor that rewrites text, image, and vector path objects in-place without rasterisation.
+This repository hosts an experimental PDF editor that combines a Fabric.js overlay with a PDF.js bitmap underlay to offer direct manipulation of true PDF content streams. The current milestone delivers end-to-end support for translating, rotating, and scaling text runs and image XObjects on the first page of a document. Edits are persisted via incremental saves so the original bytes remain intact and the updated file can be downloaded immediately.
 
 ## Project layout
 
@@ -14,34 +14,41 @@ pdf-editor/
   /e2e
 ```
 
-The `frontend` folder contains the Vite + TypeScript application that renders PDF pages with `pdf.js` and draws a Fabric.js overlay for interactive editing. The `backend` folder contains an Axum-based Rust service that parses PDFs via `lopdf`, exposes them as an intermediate representation (IR), and applies JSON patch operations to produce incremental PDF updates. The `shared` folder holds JSON schema files that document the contracts exchanged between the frontend and backend. The `e2e` folder is reserved for integration tests and sample fixtures.
+The `frontend` folder contains the Vite + TypeScript application that renders page bitmaps with `pdf.js` and draws a Fabric.js overlay for interactive editing. The `backend` folder exposes an Axum-based Rust service that parses PDFs via `lopdf`, produces an intermediate representation (IR), and applies JSON patch operations to update content streams. The `shared` folder is reserved for protocol artefacts and `e2e` holds fixtures for end-to-end testing.
 
-The codebase is licensed under Apache-2.0. All third-party dependencies are limited to permissive licences as listed in the project plan (MIT or Apache-2.0).
+All third-party dependencies are limited to permissive licences (MIT or Apache-2.0).
 
-## Current status
+## Stage 2 capabilities
 
-The current commit provides initial scaffolding for the frontend and backend projects together with strongly typed interfaces for the IR and patch protocol. Full PDF parsing, shaping, and editing logic are stubbed but the core routes and client wiring are ready for incremental feature development.
-
-### Frontend
-
-* Vite configuration for a TypeScript entry point.
-* Shared utility modules for coordinate math, Fabric.js mapping helpers, and API bindings.
-* React-free vanilla TypeScript app that renders pdf.js canvases and a Fabric overlay placeholder.
-
-### Backend
-
-* `cargo` workspace with Axum HTTP server skeleton.
-* Placeholder modules for PDF parsing, content tokenisation, patching, and font handling.
-* Data structures mirroring the JSON contracts shared with the frontend.
+* Upload a PDF and persist the original bytes to a temporary working copy.
+* Generate an IR for page 0 that lists text runs (with their `Tm` matrices) and image XObjects (with their `cm` matrices).
+* Display a Fabric.js overlay above the pdf.js rendering so that each IR entry can be dragged, rotated, or scaled.
+* Translate Fabric transforms back into PDF space and patch the content stream by rewriting the relevant `Tm` or `cm` operator.
+* Append updates incrementally so the original bytes remain untouched and the file tail shows the new xref section.
+* Download the updated PDF with the new placement applied.
 
 ## Getting started
 
 ### Prerequisites
 
 * Node.js 18+
-* Rust toolchain (stable)
+* Rust (stable toolchain)
 
-### Frontend
+### Backend (Axum + lopdf)
+
+```
+cd backend
+cargo run
+```
+
+The server listens on <http://localhost:8787>. CORS is configured for the Vite dev server on port 5173. Key routes:
+
+* `POST /api/open` – accept a PDF (multipart form-data or JSON with base64) and return a `docId`.
+* `GET /api/ir/:docId` – return the IR for page 0 with text and image objects.
+* `POST /api/patch/:docId` – apply transform patches, update the PDF incrementally, and return a data URL for the revised file.
+* `GET /api/pdf/:docId` – stream the latest bytes for preview/download.
+
+### Frontend (Vite + Fabric.js)
 
 ```
 cd frontend
@@ -49,22 +56,20 @@ npm install
 npm run dev
 ```
 
-The development server listens on <http://localhost:5173>. For now it renders placeholder canvases because the backend does not yet implement PDF parsing.
+The development server runs on <http://localhost:5173>. Open the page, select a PDF, and the first page will render with draggable controllers for each text run and image.
 
-### Backend
+### Manual verification
 
-```
-cd backend
-cargo run
-```
-
-The Axum server starts on <http://localhost:8787>. The `/api/open`, `/api/ir/:docId`, `/api/patch/:docId`, and `/api/pdf/:docId` routes are stubbed and return mock data.
+1. Start the backend (`cargo run`) and the frontend (`npm run dev`).
+2. Upload a single-page PDF containing at least one text run and one image.
+3. Drag a text overlay 50 px right and ~20 px down, apply a slight rotation, and scale it slightly. The canvas should update once the patch response is returned.
+4. Drag and rotate an image overlay.
+5. Use the *Download updated PDF* button and open the file in a viewer – both the text and image should reflect the new placement. Inspect the content stream to confirm that only the relevant `Tm`/`cm` operators changed and that the tail contains a fresh incremental xref section.
 
 ## Roadmap
 
-* Implement real PDF parsing in `backend/src/pdf/extract.rs`.
-* Produce incremental updates for transform, text edit, and style patches.
-* Complete the Fabric overlay controller logic and inline text editing UX.
-* Add automated end-to-end tests in `/e2e` that exercise representative editing scenarios.
+* Extend the IR and patcher to cover additional operators (paths, colour, and text editing).
+* Add keyboard nudge controls and snapping behaviours to the Fabric overlay.
+* Build automated end-to-end tests in `/e2e` that exercise the full upload → edit → download loop.
 
 Contributions are welcome via pull requests.
