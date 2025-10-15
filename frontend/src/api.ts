@@ -1,53 +1,58 @@
 import type { DocumentIR, PatchOperation, PatchResponse } from './types';
 
-const DEFAULT_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8787';
+const BASE_URL = 'http://localhost:8787';
 
-export type OpenResponse = {
-  docId: string;
-};
-
-export async function openDocument(file: File): Promise<OpenResponse> {
-  const formData = new FormData();
-  formData.set('file', file);
-  const response = await fetch(`${DEFAULT_BASE}/api/open`, {
+export async function open(file: File): Promise<{ docId: string }> {
+  const form = new FormData();
+  form.append('file', file);
+  const response = await fetch(`${BASE_URL}/api/open`, {
     method: 'POST',
-    body: formData,
+    body: form,
   });
   if (!response.ok) {
-    throw new Error(`open failed: ${response.status}`);
+    throw new Error(`Failed to open document: ${response.status}`);
   }
   return response.json();
 }
 
-export async function fetchIR(docId: string): Promise<DocumentIR> {
-  const response = await fetch(`${DEFAULT_BASE}/api/ir/${encodeURIComponent(docId)}`);
+export async function getIR(docId: string): Promise<DocumentIR> {
+  const response = await fetch(`${BASE_URL}/api/ir/${encodeURIComponent(docId)}`);
   if (!response.ok) {
-    throw new Error(`IR fetch failed: ${response.status}`);
+    throw new Error(`Failed to fetch IR: ${response.status}`);
   }
   return response.json();
 }
 
-export async function postPatch(
-  docId: string,
-  ops: PatchOperation[],
-): Promise<PatchResponse> {
-  const response = await fetch(`${DEFAULT_BASE}/api/patch/${encodeURIComponent(docId)}`, {
+export async function fetchPdf(docId: string): Promise<ArrayBuffer> {
+  const response = await fetch(`${BASE_URL}/api/pdf/${encodeURIComponent(docId)}`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch PDF: ${response.status}`);
+  }
+  return response.arrayBuffer();
+}
+
+export async function patch(docId: string, ops: PatchOperation[]): Promise<PatchResponse> {
+  const response = await fetch(`${BASE_URL}/api/patch/${encodeURIComponent(docId)}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(ops),
   });
   if (!response.ok) {
-    throw new Error(`patch failed: ${response.status}`);
+    throw new Error(`Patch request failed: ${response.status}`);
   }
   return response.json();
 }
 
-export async function downloadPdf(docId: string): Promise<Blob> {
-  const response = await fetch(`${DEFAULT_BASE}/api/pdf/${encodeURIComponent(docId)}`);
+export async function download(docId: string) {
+  const response = await fetch(`${BASE_URL}/api/pdf/${encodeURIComponent(docId)}`);
   if (!response.ok) {
-    throw new Error(`download failed: ${response.status}`);
+    throw new Error(`Failed to download PDF: ${response.status}`);
   }
-  return response.blob();
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `${docId}.pdf`;
+  anchor.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
