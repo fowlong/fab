@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PatchOp",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "op": {
+        "type": "string",
+        "enum": ["transform", "editText", "setStyle"]
+      },
+      "target": {
+        "type": "object",
+        "properties": {
+          "page": { "type": "integer" },
+          "id": { "type": "string" }
+        },
+        "required": ["page", "id"]
+      }
+    },
+    "required": ["op", "target"],
+    "allOf": [
+      {
+        "if": { "properties": { "op": { "const": "transform" } } },
+        "then": {
+          "properties": {
+            "deltaMatrixPt": {
+              "type": "array",
+              "items": { "type": "number" },
+              "minItems": 6,
+              "maxItems": 6
+            },
+            "kind": { "type": "string" }
+          },
+          "required": ["deltaMatrixPt", "kind"]
+        }
+      },
+      {
+        "if": { "properties": { "op": { "const": "editText" } } },
+        "then": {
+          "properties": {
+            "text": { "type": "string" }
+          },
+          "required": ["text"]
+        }
+      }
+    ]
+  }
+}
