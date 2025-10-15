@@ -1,0 +1,87 @@
+:root {
+  color-scheme: light dark;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  height: 100vh;
+}
+
+.sidebar {
+  background: #0f172a;
+  color: #f8fafc;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  background: #e2e8f0;
+}
+
+.toolbar {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border-bottom: 1px solid #cbd5f5;
+}
+
+.toolbar__button {
+  border: 1px solid #94a3b8;
+  background: #f1f5f9;
+  color: #0f172a;
+  border-radius: 0.375rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+
+.toolbar__button--active {
+  border-color: #1d4ed8;
+  color: #1d4ed8;
+}
+
+.toolbar__button--cta {
+  margin-left: auto;
+  background: #1d4ed8;
+  color: #fff;
+  border-color: #1d4ed8;
+}
+
+.page-container {
+  flex: 1;
+  overflow: auto;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  align-items: center;
+}
+
+.page-wrapper {
+  position: relative;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.25);
+  background: #fff;
+}
+
+.preview-canvas {
+  display: block;
+}
+
+.overlay-canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.hidden {
+  display: none;
+}

@@ -1,0 +1,22 @@
+[package]
+name = "pdf-editor-backend"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+authors = ["PDF Editor Team"]
+
+[dependencies]
+axum = { version = "0.7", features = ["macros", "json"] }
+tokio = { version = "1.36", features = ["macros", "rt-multi-thread"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+anyhow = "1.0"
+lopdf = "0.32"
+harfbuzz_rs = "2.0"
+ttf-parser = "0.19"
+lazy_static = "1.4"
+bytes = "1.5"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
+uuid = { version = "1.7", features = ["v4", "serde"] }

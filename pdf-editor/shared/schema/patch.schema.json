@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/patch.schema.json",
+  "title": "PatchOperation",
+  "type": "array",
+  "items": {
+    "oneOf": [
+      { "$ref": "#/definitions/TransformPatch" },
+      { "$ref": "#/definitions/EditTextPatch" },
+      { "$ref": "#/definitions/SetStylePatch" }
+    ]
+  },
+  "definitions": {
+    "Target": {
+      "type": "object",
+      "required": ["page", "id"],
+      "properties": {
+        "page": { "type": "integer", "minimum": 0 },
+        "id": { "type": "string" }
+      }
+    },
+    "TransformPatch": {
+      "type": "object",
+      "required": ["op", "kind", "target", "deltaMatrixPt"],
+      "properties": {
+        "op": { "const": "transform" },
+        "kind": { "enum": ["text", "image", "path"] },
+        "target": { "$ref": "#/definitions/Target" },
+        "deltaMatrixPt": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 6,
+          "maxItems": 6
+        }
+      }
+    },
+    "EditTextPatch": {
+      "type": "object",
+      "required": ["op", "target", "text"],
+      "properties": {
+        "op": { "const": "editText" },
+        "target": { "$ref": "#/definitions/Target" },
+        "text": { "type": "string" },
+        "fontPref": {
+          "type": "object",
+          "properties": {
+            "preferExisting": { "type": "boolean" },
+            "fallbackFamily": { "type": "string" }
+          }
+        }
+      }
+    },
+    "SetStylePatch": {
+      "type": "object",
+      "required": ["op", "target", "style"],
+      "properties": {
+        "op": { "const": "setStyle" },
+        "target": { "$ref": "#/definitions/Target" },
+        "style": {
+          "type": "object",
+          "properties": {
+            "opacityFill": { "type": "number", "minimum": 0, "maximum": 1 },
+            "opacityStroke": { "type": "number", "minimum": 0, "maximum": 1 },
+            "fillColor": { "type": "string" },
+            "strokeColor": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}
