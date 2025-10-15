@@ -1,0 +1,14 @@
+### Open document
+POST http://localhost:8787/api/open
+
+### Fetch IR
+GET http://localhost:8787/api/ir/demo
+
+### Apply patch
+POST http://localhost:8787/api/patch/demo
+Content-Type: application/json
+
+[]
+
+### Download PDF
+GET http://localhost:8787/api/pdf/demo

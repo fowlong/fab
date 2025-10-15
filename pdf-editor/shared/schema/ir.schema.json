@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "IRDocument",
+  "type": "object",
+  "properties": {
+    "pages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "index": { "type": "integer" },
+          "widthPt": { "type": "number" },
+          "heightPt": { "type": "number" },
+          "objects": { "type": "array" }
+        },
+        "required": ["index", "widthPt", "heightPt", "objects"]
+      }
+    }
+  },
+  "required": ["pages"]
+}
