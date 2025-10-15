@@ -1,0 +1,65 @@
+:root {
+  font-family: 'Inter', system-ui, sans-serif;
+  color-scheme: light dark;
+}
+
+body,
+html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: #1e1e1e;
+  color: #f0f0f0;
+}
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.toolbar {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #121212;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+}
+
+.preview,
+.overlay {
+  position: relative;
+  overflow: auto;
+  padding: 1rem;
+}
+
+.pdf-page-wrapper,
+.fabric-page-wrapper {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.pdf-preview-canvas,
+.fabric-overlay-canvas {
+  display: block;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.overlay .fabric-page-wrapper {
+  pointer-events: none;
+}
+
+.overlay .fabric-overlay-canvas {
+  pointer-events: auto;
+}
