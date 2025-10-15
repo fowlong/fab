@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/schema/ir.schema.json",
+  "title": "PDF Intermediate Representation",
+  "type": "object",
+  "properties": {
+    "pages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["index", "widthPt", "heightPt", "objects"],
+        "properties": {
+          "index": {"type": "integer", "minimum": 0},
+          "widthPt": {"type": "number"},
+          "heightPt": {"type": "number"},
+          "objects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "kind", "pdfRef", "bbox"],
+              "properties": {
+                "id": {"type": "string"},
+                "kind": {"type": "string", "enum": ["text", "image", "path"]},
+                "pdfRef": {
+                  "type": "object",
+                  "required": ["obj", "gen"],
+                  "properties": {
+                    "obj": {"type": "integer", "minimum": 0},
+                    "gen": {"type": "integer", "minimum": 0}
+                  }
+                },
+                "btSpan": {
+                  "type": "object",
+                  "required": ["start", "end", "streamObj"],
+                  "properties": {
+                    "start": {"type": "integer", "minimum": 0},
+                    "end": {"type": "integer", "minimum": 0},
+                    "streamObj": {"type": "integer", "minimum": 0}
+                  }
+                },
+                "Tm": {
+                  "type": "array",
+                  "items": {"type": "number"},
+                  "minItems": 6,
+                  "maxItems": 6
+                },
+                "font": {
+                  "type": "object",
+                  "required": ["resName", "size"],
+                  "properties": {
+                    "resName": {"type": "string"},
+                    "size": {"type": "number"},
+                    "type": {"type": "string"}
+                  }
+                },
+                "unicode": {"type": "string"},
+                "glyphs": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "gid": {"type": "integer"},
+                      "dx": {"type": "number"},
+                      "dy": {"type": "number"}
+                    }
+                  }
+                },
+                "xObject": {"type": "string"},
+                "cm": {
+                  "type": "array",
+                  "items": {"type": "number"},
+                  "minItems": 6,
+                  "maxItems": 6
+                },
+                "bbox": {
+                  "type": "array",
+                  "items": {"type": "number"},
+                  "minItems": 4,
+                  "maxItems": 4
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": ["pages"]
+}
