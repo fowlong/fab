@@ -1,0 +1,9 @@
+# Frontend artifacts
+frontend/node_modules
+frontend/dist
+
+# Backend artifacts
+backend/target
+
+# Misc
+.DS_Store

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Patch operations",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "op": {
+        "type": "string",
+        "enum": ["transform", "editText", "setStyle"]
+      }
+    },
+    "required": ["op"]
+  }
+}

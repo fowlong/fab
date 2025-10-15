@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Intermediate Representation",
+  "type": "object",
+  "properties": {
+    "pages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "index": { "type": "integer", "minimum": 0 },
+          "widthPt": { "type": "number", "minimum": 0 },
+          "heightPt": { "type": "number", "minimum": 0 },
+          "objects": { "type": "array" }
+        },
+        "required": ["index", "widthPt", "heightPt", "objects"]
+      }
+    }
+  },
+  "required": ["pages"]
+}
