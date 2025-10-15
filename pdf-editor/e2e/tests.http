@@ -1,0 +1,22 @@
+### Sample HTTP requests for VS Code REST Client
+
+# @name open
+POST http://localhost:8787/api/open
+
+###
+# @name ir
+GET http://localhost:8787/api/ir/doc-1
+
+###
+# @name patch
+POST http://localhost:8787/api/patch/doc-1
+Content-Type: application/json
+
+[
+  {
+    "op": "transform",
+    "target": { "page": 0, "id": "t:1" },
+    "deltaMatrixPt": [1,0,0,1,10,0],
+    "kind": "text"
+  }
+]
