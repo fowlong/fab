@@ -1,0 +1,22 @@
+[package]
+name = "pdf_editor_backend"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = { version = "0.7", features = ["json", "multipart"] }
+tokio = { version = "1.38", features = ["rt-multi-thread", "macros"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+anyhow = "1.0"
+lopdf = "0.32"
+harfbuzz_rs = "2.0"
+ttf-parser = "0.24"
+lazy_static = "1.4"
+parking_lot = "0.12"
+base64 = "0.22"
+uuid = { version = "1.8", features = ["v4"] }
+bytes = "1.6"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }

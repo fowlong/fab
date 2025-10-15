@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/patch.schema.json",
+  "title": "PatchOperations",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["op", "target"],
+    "properties": {
+      "op": { "type": "string" },
+      "target": {
+        "type": "object",
+        "required": ["page", "id"],
+        "properties": {
+          "page": { "type": "integer", "minimum": 0 },
+          "id": { "type": "string" }
+        }
+      }
+    }
+  }
+}
