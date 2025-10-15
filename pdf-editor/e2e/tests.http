@@ -1,0 +1,22 @@
+### Sample REST client calls for the PDF editor backend
+
+# Upload/open a PDF
+POST http://localhost:8787/api/open
+Content-Type: application/json
+
+{
+  "name": "sample.pdf",
+  "pdfBase64": "<base64>"
+}
+
+### Fetch the extracted IR for the first document
+GET http://localhost:8787/api/ir/doc-1
+
+### Apply a noop patch
+POST http://localhost:8787/api/patch/doc-1
+Content-Type: application/json
+
+[]
+
+### Download the latest PDF
+GET http://localhost:8787/api/pdf/doc-1
