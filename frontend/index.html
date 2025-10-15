@@ -1,13 +1,22 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>PDF Editor</title>
-    <link rel="stylesheet" href="/src/styles.css" />
   </head>
-  <body>
-    <div id="app"></div>
+  <body style="background:#0f172a;color:#fff;font-family:system-ui, -apple-system, Segoe UI, Roboto, sans-serif;">
+    <div id="app" style="padding:24px">
+      <h1 style="margin-bottom:16px">PDF Editor</h1>
+      <button id="open-sample" style="padding:8px 12px;margin-right:12px">Open sample PDF</button>
+      <label>
+        <input id="file" type="file" accept="application/pdf" style="display:none">
+        <span style="padding:8px 12px;background:#333;border-radius:6px;cursor:pointer">Choose PDF…</span>
+      </label>
+      <pre id="log" style="margin-top:16px;background:#11191f;padding:12px;border-radius:6px;white-space:pre-wrap"></pre>
+    </div>
+
+    <!-- NOTE: this points to main.ts (no React) -->
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
