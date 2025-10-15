@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PatchOperations",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "oneOf": [
+      {
+        "properties": {
+          "op": { "const": "transform" },
+          "target": { "type": "object" },
+          "deltaMatrixPt": {
+            "type": "array",
+            "items": { "type": "number" },
+            "minItems": 6,
+            "maxItems": 6
+          },
+          "kind": { "type": "string" }
+        },
+        "required": ["op", "target", "deltaMatrixPt", "kind"]
+      },
+      {
+        "properties": {
+          "op": { "const": "editText" },
+          "target": { "type": "object" },
+          "text": { "type": "string" },
+          "fontPref": { "type": "object" }
+        },
+        "required": ["op", "target", "text", "fontPref"]
+      },
+      {
+        "properties": {
+          "op": { "const": "setStyle" },
+          "target": { "type": "object" },
+          "style": { "type": "object" }
+        },
+        "required": ["op", "target", "style"]
+      }
+    ]
+  }
+}
