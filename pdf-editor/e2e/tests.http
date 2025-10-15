@@ -1,0 +1,29 @@
+### Upload a PDF
+# @name open
+POST http://localhost:8787/api/open
+Content-Type: application/json
+
+{
+  "pdf_base64": ""
+}
+
+### Fetch IR
+GET http://localhost:8787/api/ir/{{open.response.body.doc_id}}
+
+### Apply patch (noop)
+POST http://localhost:8787/api/patch/{{open.response.body.doc_id}}
+Content-Type: application/json
+
+{
+  "ops": [
+    {
+      "op": "transform",
+      "target": {"page": 0, "id": "t:1"},
+      "deltaMatrixPt": [1,0,0,1,0,0],
+      "kind": "text"
+    }
+  ]
+}
+
+### Download latest PDF
+GET http://localhost:8787/api/pdf/{{open.response.body.doc_id}}
