@@ -1,53 +1,32 @@
-export type PdfRef = {
-  obj: number;
-  gen: number;
+export type Span = {
+  start: number;
+  end: number;
+  streamObj: number;
 };
 
-export type TextGlyph = {
-  gid: number;
-  dx: number;
-  dy: number;
+export type FontInfo = {
+  resName: string;
+  size: number;
 };
 
 export type TextObject = {
   id: string;
   kind: 'text';
-  pdfRef: PdfRef;
-  btSpan: {
-    start: number;
-    end: number;
-    streamObj: number;
-  };
+  btSpan: Span;
   Tm: [number, number, number, number, number, number];
-  font: {
-    resName: string;
-    size: number;
-    type: string;
-  };
-  unicode: string;
-  glyphs: TextGlyph[];
+  font: FontInfo;
   bbox: [number, number, number, number];
 };
 
 export type ImageObject = {
   id: string;
   kind: 'image';
-  pdfRef: PdfRef;
   xObject: string;
   cm: [number, number, number, number, number, number];
   bbox: [number, number, number, number];
 };
 
-export type PathObject = {
-  id: string;
-  kind: 'path';
-  pdfRef: PdfRef;
-  operations: string[];
-  cm: [number, number, number, number, number, number];
-  bbox: [number, number, number, number];
-};
-
-export type PageObject = TextObject | ImageObject | PathObject;
+export type PageObject = TextObject | ImageObject;
 
 export type PageIR = {
   index: number;
@@ -62,42 +41,15 @@ export type DocumentIR = {
 
 export type TransformPatch = {
   op: 'transform';
-  target: PatchTarget;
+  target: { page: number; id: string };
   deltaMatrixPt: [number, number, number, number, number, number];
-  kind: 'text' | 'image' | 'path';
+  kind: 'text' | 'image';
 };
 
-export type EditTextPatch = {
-  op: 'editText';
-  target: PatchTarget;
-  text: string;
-  fontPref?: {
-    preferExisting?: boolean;
-    fallbackFamily?: string;
-  };
-};
-
-export type StylePatch = {
-  op: 'setStyle';
-  target: PatchTarget;
-  style: {
-    fillColor?: [number, number, number];
-    strokeColor?: [number, number, number];
-    opacityFill?: number;
-    opacityStroke?: number;
-  };
-};
-
-export type PatchOperation = TransformPatch | EditTextPatch | StylePatch;
-
-export type PatchTarget = {
-  page: number;
-  id: string;
-};
+export type PatchOperation = TransformPatch;
 
 export type PatchResponse = {
   ok: boolean;
   updatedPdf?: string;
-  remap?: Record<string, { pdfRef: PdfRef }>;
-  message?: string;
+  remap?: Record<string, unknown> | null;
 };

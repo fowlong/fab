@@ -1,79 +1,94 @@
-// src/fabricOverlay.ts
-
-// Robust import that works across Fabric v4/v5 and different bundlers
 import * as FabricNS from 'fabric';
-const fabric: any =
-  (FabricNS as any).fabric ?? // UMD-style { fabric }
-  (FabricNS as any).default ?? // default export carrying the namespace
-  (FabricNS as any); // namespace exports (Canvas, Rect, etc. on the root)
+const fabric: typeof FabricNS =
+  (FabricNS as any).fabric ?? (FabricNS as any).default ?? (FabricNS as unknown as typeof FabricNS);
 
-import type { DocumentIR, PageIR, PageObject } from './types';
-import { createFabricPlaceholder } from './mapping';
+import type { PageIR, PageObject } from './types';
+import type { Matrix } from './coords';
+import { S, fabricDeltaToPdfDelta } from './coords';
 
-type OverlayEntry = {
-  // Use `any` to avoid TS complaining about types across the various export shapes
-  canvas: any;
-  element: HTMLCanvasElement;
+export type TransformHandler = (args: {
+  id: string;
+  kind: 'text' | 'image';
+  delta: Matrix;
+}) => Promise<void>;
+
+type ControllerMeta = {
+  id: string;
+  kind: 'text' | 'image';
+  pageHeightPt: number;
+  F0: Matrix;
 };
 
-export class FabricOverlayManager {
-  private overlays = new Map<number, OverlayEntry>();
+export class FabricOverlay {
+  private canvas: fabric.Canvas;
+  private handler: TransformHandler;
+  private pageHeightPt: number;
 
-  reset() {
-    for (const entry of this.overlays.values()) {
-      entry.canvas.dispose();
-      entry.element.remove();
-    }
-    this.overlays.clear();
+  constructor(canvasEl: HTMLCanvasElement, pageHeightPt: number, handler: TransformHandler) {
+    this.canvas = new fabric.Canvas(canvasEl, { selection: false, preserveObjectStacking: true });
+    this.pageHeightPt = pageHeightPt;
+    this.handler = handler;
   }
 
-  mountOverlay(
-    page: PageIR,
-    wrapper: HTMLElement,
-    size: { width: number; height: number },
-  ) {
-    const existing = this.overlays.get(page.index);
-    if (existing) {
-      existing.canvas.dispose();
-      existing.element.remove();
-    }
+  clear() {
+    this.canvas.getObjects().forEach((obj) => this.canvas.remove(obj));
+    this.canvas.discardActiveObject();
+    this.canvas.requestRenderAll();
+  }
 
-    const canvasEl = document.createElement('canvas');
-    canvasEl.width = size.width;
-    canvasEl.height = size.height;
-    canvasEl.style.width = `${size.width}px`;
-    canvasEl.style.height = `${size.height}px`;
-    canvasEl.className = 'fabric-page-overlay';
-    wrapper.appendChild(canvasEl);
+  render(page: PageIR) {
+    this.clear();
+    page.objects.forEach((obj) => this.addController(obj, page));
+    this.canvas.requestRenderAll();
+  }
 
-    const canvas = new fabric.Canvas(canvasEl, {
-      selection: true,
+  private addController(obj: PageObject, page: PageIR) {
+    const bbox = obj.bbox;
+    const widthPx = (bbox[2] - bbox[0]) / S;
+    const heightPx = (bbox[3] - bbox[1]) / S;
+    const leftPx = bbox[0] / S;
+    const topPx = (page.heightPt - bbox[3]) / S;
+
+    const rect = new fabric.Rect({
+      left: leftPx,
+      top: topPx,
+      width: Math.max(widthPx, 4),
+      height: Math.max(heightPx, 4),
+      fill: 'rgba(0,0,0,0)',
+      stroke: 'rgba(33, 150, 243, 0.6)',
+      strokeDashArray: [6, 4],
+      strokeWidth: 1.5,
+      transparentCorners: false,
+      cornerColor: '#2196F3',
+      hasBorders: true,
     });
 
-    this.overlays.set(page.index, { canvas, element: canvasEl });
-    return canvas;
-  }
+    const meta: ControllerMeta = {
+      id: obj.id,
+      kind: obj.kind,
+      pageHeightPt: page.heightPt,
+      F0: rect.calcTransformMatrix() as Matrix,
+    };
 
-  populate(
-    ir: DocumentIR,
-    wrappers: HTMLElement[],
-    pageSizes: Array<{ width: number; height: number }>,
-  ) {
-    this.reset();
+    (rect as any).meta = meta;
 
-    ir.pages.forEach((page) => {
-      const wrapper = wrappers[page.index];
-      const size = pageSizes[page.index];
-      if (!wrapper || !size) return;
-
-      const canvas = this.mountOverlay(page, wrapper, size);
-      page.objects.forEach((obj) => this.addPlaceholder(canvas, page, obj));
-      canvas.renderAll();
+    rect.on('modified', () => {
+      const currentMeta = (rect as any).meta as ControllerMeta | undefined;
+      if (!currentMeta) return;
+      const Fnew = rect.calcTransformMatrix() as Matrix;
+      const delta = fabricDeltaToPdfDelta(currentMeta.F0, Fnew, currentMeta.pageHeightPt);
+      this.handler({ id: currentMeta.id, kind: currentMeta.kind, delta })
+        .then(() => {
+          currentMeta.F0 = Fnew;
+        })
+        .catch((err) => {
+          console.error('patch failed', err);
+          rect.set('transformMatrix', currentMeta.F0.slice() as any);
+          rect.setCoords();
+          this.canvas.requestRenderAll();
+        });
     });
-  }
 
-  private addPlaceholder(canvas: any, page: PageIR, obj: PageObject) {
-    const placeholder = createFabricPlaceholder(canvas, page, obj);
-    canvas.add(placeholder);
+    this.canvas.add(rect);
   }
 }
