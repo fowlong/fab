@@ -1,0 +1,21 @@
+{
+  "name": "pdf-editor-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "fabric": "^6.0.0",
+    "pdfjs-dist": "^3.11.174"
+  },
+  "devDependencies": {
+    "@types/dom-screen-wake-lock": "^1.0.2",
+    "@types/node": "^20.11.30",
+    "typescript": "^5.4.2",
+    "vite": "^5.1.4"
+  }
+}
