@@ -1,0 +1,98 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PdfEditorIR",
+  "type": "object",
+  "properties": {
+    "pages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["index", "widthPt", "heightPt", "objects"],
+        "properties": {
+          "index": {"type": "integer", "minimum": 0},
+          "widthPt": {"type": "number"},
+          "heightPt": {"type": "number"},
+          "objects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "kind", "bbox"],
+              "properties": {
+                "id": {"type": "string"},
+                "kind": {"type": "string", "enum": ["text", "image", "path"]},
+                "bbox": {
+                  "type": "array",
+                  "items": {"type": "number"},
+                  "minItems": 4,
+                  "maxItems": 4
+                },
+                "pdfRef": {
+                  "type": "object",
+                  "required": ["obj", "gen"],
+                  "properties": {
+                    "obj": {"type": "integer", "minimum": 0},
+                    "gen": {"type": "integer", "minimum": 0}
+                  }
+                }
+              },
+              "allOf": [
+                {
+                  "if": {"properties": {"kind": {"const": "text"}}},
+                  "then": {
+                    "required": ["Tm", "font", "unicode"],
+                    "properties": {
+                      "Tm": {
+                        "type": "array",
+                        "items": {"type": "number"},
+                        "minItems": 6,
+                        "maxItems": 6
+                      },
+                      "font": {
+                        "type": "object",
+                        "required": ["resName", "size"],
+                        "properties": {
+                          "resName": {"type": "string"},
+                          "size": {"type": "number"},
+                          "type": {"type": "string"}
+                        }
+                      },
+                      "unicode": {"type": "string"},
+                      "glyphs": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": ["gid"],
+                          "properties": {
+                            "gid": {"type": "integer", "minimum": 0},
+                            "dx": {"type": "number"},
+                            "dy": {"type": "number"}
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {"properties": {"kind": {"const": "image"}}},
+                  "then": {
+                    "required": ["cm", "xObject"],
+                    "properties": {
+                      "cm": {
+                        "type": "array",
+                        "items": {"type": "number"},
+                        "minItems": 6,
+                        "maxItems": 6
+                      },
+                      "xObject": {"type": "string"}
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": ["pages"]
+}

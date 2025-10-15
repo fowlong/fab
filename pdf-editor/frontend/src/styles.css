@@ -1,0 +1,108 @@
+:root {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #1f2937;
+  background-color: #f9fafb;
+}
+
+body,
+html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+#app {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  grid-template-rows: auto 1fr;
+  height: 100vh;
+}
+
+header {
+  grid-column: 1 / span 2;
+  padding: 1rem 1.5rem;
+  background: #111827;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+main {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  overflow: hidden;
+}
+
+aside {
+  background: #e5e7eb;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.page-thumb {
+  border: 1px solid #cbd5f5;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  background: white;
+}
+
+.editor {
+  position: relative;
+  overflow: auto;
+  background: #d1d5db;
+}
+
+.pdf-page {
+  position: relative;
+  margin: 1.5rem auto;
+  box-shadow: 0 10px 40px rgba(15, 23, 42, 0.18);
+}
+
+.pdf-preview,
+.fabric-overlay {
+  display: block;
+}
+
+.toolbar {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.toolbar button,
+.toolbar label {
+  padding: 0.45rem 0.9rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: #374151;
+  color: #f9fafb;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.toolbar button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.toast-container {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 1000;
+}
+
+.toast {
+  background: rgba(17, 24, 39, 0.9);
+  color: white;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  min-width: 200px;
+  box-shadow: 0 12px 25px rgba(15, 23, 42, 0.2);
+}
