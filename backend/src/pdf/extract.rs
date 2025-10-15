@@ -228,6 +228,24 @@ fn extract_stream_objects(
                     state.text_line_matrix =
                         content::multiply(&translation, &state.text_line_matrix);
                     state.text_matrix = state.text_line_matrix;
+                    if let Some(builder) = current_text.as_mut() {
+                        builder.record_position_op(token.span.end);
+                    }
+                }
+            }
+            "TD" => {
+                if let (Some(tx), Some(ty)) = (
+                    token.operands.get(0).and_then(Operand::as_number),
+                    token.operands.get(1).and_then(Operand::as_number),
+                ) {
+                    let translation = [1.0, 0.0, 0.0, 1.0, tx, ty];
+                    state.text_line_matrix =
+                        content::multiply(&translation, &state.text_line_matrix);
+                    state.text_matrix = state.text_line_matrix;
+                    state.text_leading = -ty;
+                    if let Some(builder) = current_text.as_mut() {
+                        builder.record_position_op(token.span.end);
+                    }
                 }
             }
             "T*" => {
@@ -235,11 +253,14 @@ fn extract_stream_objects(
                 let translation = [1.0, 0.0, 0.0, 1.0, 0.0, ty];
                 state.text_line_matrix = content::multiply(&translation, &state.text_line_matrix);
                 state.text_matrix = state.text_line_matrix;
+                if let Some(builder) = current_text.as_mut() {
+                    builder.record_position_op(token.span.end);
+                }
             }
             "Tj" | "TJ" => {
                 if let Some(builder) = current_text.as_mut() {
                     let units = count_text_units(&token.operands);
-                    builder.record_text(&state, units, token.span.end);
+                    builder.record_text(&state, units, &token.span);
                 }
             }
             "Do" => {
@@ -370,8 +391,17 @@ impl TextBuilder {
         }
     }
 
-    fn record_text(&mut self, state: &GraphicsState, units: usize, span_end: usize) {
+    fn record_position_op(&mut self, span_end: usize) {
         if !self.seen_text {
+            self.tm_insert_pos = span_end;
+        }
+    }
+
+    fn record_text(&mut self, state: &GraphicsState, units: usize, span: &Range<usize>) {
+        if !self.seen_text {
+            if self.tm_range.is_none() {
+                self.tm_insert_pos = self.tm_insert_pos.max(span.start);
+            }
             self.base_tm = state.text_matrix;
             self.seen_text = true;
             if self.font.res_name.is_empty() {
@@ -380,7 +410,7 @@ impl TextBuilder {
             self.font.size = state.font_size;
         }
         self.glyph_count += units;
-        self.last_span_end = span_end;
+        self.last_span_end = span.end;
     }
 
     fn update_last_span(&mut self, span_end: usize) {
