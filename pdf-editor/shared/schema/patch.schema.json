@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Patch Operations",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["op", "target"],
+    "properties": {
+      "op": {
+        "type": "string",
+        "enum": ["transform", "editText", "setStyle"]
+      },
+      "target": {
+        "type": "object",
+        "required": ["page", "id"],
+        "properties": {
+          "page": { "type": "integer" },
+          "id": { "type": "string" }
+        }
+      },
+      "kind": {
+        "type": "string",
+        "enum": ["text", "image", "path"]
+      },
+      "deltaMatrixPt": {
+        "type": "array",
+        "items": { "type": "number" },
+        "minItems": 6,
+        "maxItems": 6
+      },
+      "text": { "type": "string" },
+      "fontPref": {
+        "type": "object",
+        "required": ["preferExisting", "fallbackFamily"],
+        "properties": {
+          "preferExisting": { "type": "boolean" },
+          "fallbackFamily": { "type": "string" }
+        }
+      },
+      "style": {
+        "type": "object",
+        "properties": {
+          "opacityFill": { "type": "number" },
+          "opacityStroke": { "type": "number" },
+          "fillColorRgb": {
+            "type": "array",
+            "items": { "type": "number" },
+            "minItems": 3,
+            "maxItems": 3
+          },
+          "strokeColorRgb": {
+            "type": "array",
+            "items": { "type": "number" },
+            "minItems": 3,
+            "maxItems": 3
+          }
+        }
+      }
+    },
+    "allOf": [
+      {
+        "if": { "properties": { "op": { "const": "transform" } } },
+        "then": {
+          "required": ["deltaMatrixPt", "kind"]
+        }
+      },
+      {
+        "if": { "properties": { "op": { "const": "editText" } } },
+        "then": {
+          "required": ["text", "fontPref"]
+        }
+      },
+      {
+        "if": { "properties": { "op": { "const": "setStyle" } } },
+        "then": {
+          "required": ["style"]
+        }
+      }
+    ]
+  }
+}

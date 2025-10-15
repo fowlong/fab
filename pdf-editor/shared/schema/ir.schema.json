@@ -1,0 +1,112 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Intermediate Representation",
+  "type": "object",
+  "required": ["pages"],
+  "properties": {
+    "pages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["index", "widthPt", "heightPt", "objects"],
+        "properties": {
+          "index": { "type": "integer" },
+          "widthPt": { "type": "number" },
+          "heightPt": { "type": "number" },
+          "objects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "kind", "pdfRef", "bbox"],
+              "properties": {
+                "id": { "type": "string" },
+                "kind": { "type": "string", "enum": ["text", "image", "path"] },
+                "pdfRef": {
+                  "type": "object",
+                  "required": ["obj", "gen"],
+                  "properties": {
+                    "obj": { "type": "integer" },
+                    "gen": { "type": "integer" }
+                  }
+                },
+                "bbox": {
+                  "type": "array",
+                  "items": { "type": "number" },
+                  "minItems": 4,
+                  "maxItems": 4
+                }
+              },
+              "allOf": [
+                {
+                  "if": { "properties": { "kind": { "const": "text" } } },
+                  "then": {
+                    "required": ["Tm", "font", "unicode", "glyphs"],
+                    "properties": {
+                      "Tm": {
+                        "type": "array",
+                        "items": { "type": "number" },
+                        "minItems": 6,
+                        "maxItems": 6
+                      },
+                      "font": {
+                        "type": "object",
+                        "required": ["resName", "size", "type"],
+                        "properties": {
+                          "resName": { "type": "string" },
+                          "size": { "type": "number" },
+                          "type": { "type": "string" }
+                        }
+                      },
+                      "unicode": { "type": "string" },
+                      "glyphs": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": ["gid", "dx", "dy"],
+                          "properties": {
+                            "gid": { "type": "integer" },
+                            "dx": { "type": "number" },
+                            "dy": { "type": "number" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": { "properties": { "kind": { "const": "image" } } },
+                  "then": {
+                    "required": ["cm", "xObject"],
+                    "properties": {
+                      "cm": {
+                        "type": "array",
+                        "items": { "type": "number" },
+                        "minItems": 6,
+                        "maxItems": 6
+                      },
+                      "xObject": { "type": "string" }
+                    }
+                  }
+                },
+                {
+                  "if": { "properties": { "kind": { "const": "path" } } },
+                  "then": {
+                    "required": ["cm"],
+                    "properties": {
+                      "cm": {
+                        "type": "array",
+                        "items": { "type": "number" },
+                        "minItems": 6,
+                        "maxItems": 6
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
