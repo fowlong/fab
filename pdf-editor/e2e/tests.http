@@ -1,0 +1,20 @@
+### Open sample document
+GET http://localhost:8787/api/open-sample
+Accept: application/json
+
+### Fetch IR
+GET http://localhost:8787/api/ir/{{docId}}
+Accept: application/json
+
+### Apply transform patch
+POST http://localhost:8787/api/patch/{{docId}}
+Content-Type: application/json
+
+[
+  {
+    "op": "transform",
+    "target": { "page": 0, "id": "t:1" },
+    "deltaMatrixPt": [1,0,0,1,10,15],
+    "kind": "text"
+  }
+]
