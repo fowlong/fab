@@ -1,0 +1,21 @@
+### Example REST Client script
+# @name open
+POST http://localhost:8787/api/open
+
+###
+# @name ir
+GET http://localhost:8787/api/ir/{{open.response.body.$.docId}}
+
+###
+# @name patch
+POST http://localhost:8787/api/patch/{{open.response.body.$.docId}}
+Content-Type: application/json
+
+[
+  {
+    "op": "transform",
+    "target": {"page": 0, "id": "t:1"},
+    "deltaMatrixPt": [1,0,0,1,12,0],
+    "kind": "text"
+  }
+]
