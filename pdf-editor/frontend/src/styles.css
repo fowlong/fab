@@ -1,0 +1,47 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #1f2933;
+  background: #f8fafc;
+}
+
+body {
+  margin: 0;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  height: 100vh;
+}
+
+.sidebar {
+  padding: 1rem;
+  border-right: 1px solid #d2d6dc;
+  background: #ffffff;
+  overflow-y: auto;
+}
+
+.editor {
+  position: relative;
+  overflow: auto;
+  padding: 1rem;
+}
+
+.page-preview {
+  position: relative;
+  margin-bottom: 2rem;
+}
+
+.pdf-canvas,
+.fabric-overlay {
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
+  background: white;
+  display: block;
+}
+
+.fabric-overlay {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: auto;
+}

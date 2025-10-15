@@ -1,0 +1,5 @@
+### Open document
+POST http://localhost:8787/api/open
+Content-Type: application/pdf
+
+< ./sample.pdf
