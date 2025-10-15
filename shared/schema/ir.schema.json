@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/ir.schema.json",
+  "title": "DocumentIR",
+  "type": "object",
+  "properties": {
+    "pages": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/Page" }
+    }
+  },
+  "required": ["pages"],
+  "definitions": {
+    "PdfRef": {
+      "type": "object",
+      "properties": {
+        "obj": { "type": "integer", "minimum": 0 },
+        "gen": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["obj", "gen"]
+    },
+    "Span": {
+      "type": "object",
+      "properties": {
+        "start": { "type": "integer", "minimum": 0 },
+        "end": { "type": "integer", "minimum": 0 },
+        "streamObj": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["start", "end", "streamObj"]
+    },
+    "FontInfo": {
+      "type": "object",
+      "properties": {
+        "resName": { "type": "string" },
+        "size": { "type": "number" },
+        "type": { "type": "string" }
+      },
+      "required": ["resName", "size", "type"]
+    },
+    "TextGlyph": {
+      "type": "object",
+      "properties": {
+        "gid": { "type": "integer", "minimum": 0 },
+        "dx": { "type": "number" },
+        "dy": { "type": "number" }
+      },
+      "required": ["gid", "dx", "dy"]
+    },
+    "TextObject": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "kind": { "const": "text" },
+        "pdfRef": { "$ref": "#/definitions/PdfRef" },
+        "btSpan": { "$ref": "#/definitions/Span" },
+        "Tm": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 6,
+          "maxItems": 6
+        },
+        "font": { "$ref": "#/definitions/FontInfo" },
+        "unicode": { "type": "string" },
+        "glyphs": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/TextGlyph" }
+        },
+        "bbox": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 4,
+          "maxItems": 4
+        }
+      },
+      "required": ["id", "kind", "pdfRef", "btSpan", "Tm", "font", "unicode", "glyphs", "bbox"]
+    },
+    "ImageObject": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "kind": { "const": "image" },
+        "pdfRef": { "$ref": "#/definitions/PdfRef" },
+        "xObject": { "type": "string" },
+        "cm": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 6,
+          "maxItems": 6
+        },
+        "bbox": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 4,
+          "maxItems": 4
+        }
+      },
+      "required": ["id", "kind", "pdfRef", "xObject", "cm", "bbox"]
+    },
+    "PathObject": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "kind": { "const": "path" },
+        "pdfRef": { "$ref": "#/definitions/PdfRef" },
+        "operations": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "cm": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 6,
+          "maxItems": 6
+        },
+        "bbox": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 4,
+          "maxItems": 4
+        }
+      },
+      "required": ["id", "kind", "pdfRef", "operations", "cm", "bbox"]
+    },
+    "PageObject": {
+      "oneOf": [
+        { "$ref": "#/definitions/TextObject" },
+        { "$ref": "#/definitions/ImageObject" },
+        { "$ref": "#/definitions/PathObject" }
+      ]
+    },
+    "Page": {
+      "type": "object",
+      "properties": {
+        "index": { "type": "integer", "minimum": 0 },
+        "widthPt": { "type": "number" },
+        "heightPt": { "type": "number" },
+        "objects": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/PageObject" }
+        }
+      },
+      "required": ["index", "widthPt", "heightPt", "objects"]
+    }
+  }
+}

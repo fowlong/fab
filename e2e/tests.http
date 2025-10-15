@@ -1,0 +1,22 @@
+### Open sample PDF
+POST http://localhost:8787/api/open
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="sample.pdf"
+Content-Type: application/pdf
+
+< ./sample.pdf
+--boundary--
+
+### Fetch IR
+GET http://localhost:8787/api/ir/doc-0001
+
+### Apply no-op patch
+POST http://localhost:8787/api/patch/doc-0001
+Content-Type: application/json
+
+[]
+
+### Download latest PDF
+GET http://localhost:8787/api/pdf/doc-0001

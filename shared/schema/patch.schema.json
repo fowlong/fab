@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/patch.schema.json",
+  "title": "PatchOperations",
+  "type": "array",
+  "items": {
+    "oneOf": [
+      { "$ref": "#/definitions/Transform" },
+      { "$ref": "#/definitions/EditText" },
+      { "$ref": "#/definitions/SetStyle" }
+    ]
+  },
+  "definitions": {
+    "Target": {
+      "type": "object",
+      "properties": {
+        "page": { "type": "integer", "minimum": 0 },
+        "id": { "type": "string" }
+      },
+      "required": ["page", "id"]
+    },
+    "Transform": {
+      "type": "object",
+      "properties": {
+        "op": { "const": "transform" },
+        "target": { "$ref": "#/definitions/Target" },
+        "kind": {
+          "type": "string",
+          "enum": ["text", "image", "path"]
+        },
+        "deltaMatrixPt": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 6,
+          "maxItems": 6
+        }
+      },
+      "required": ["op", "target", "kind", "deltaMatrixPt"]
+    },
+    "EditText": {
+      "type": "object",
+      "properties": {
+        "op": { "const": "editText" },
+        "target": { "$ref": "#/definitions/Target" },
+        "text": { "type": "string" },
+        "fontPref": {
+          "type": "object",
+          "properties": {
+            "preferExisting": { "type": "boolean" },
+            "fallbackFamily": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["op", "target", "text"]
+    },
+    "SetStyle": {
+      "type": "object",
+      "properties": {
+        "op": { "const": "setStyle" },
+        "target": { "$ref": "#/definitions/Target" },
+        "style": {
+          "type": "object",
+          "properties": {
+            "fillColor": {
+              "type": "array",
+              "items": { "type": "number" },
+              "minItems": 3,
+              "maxItems": 3
+            },
+            "strokeColor": {
+              "type": "array",
+              "items": { "type": "number" },
+              "minItems": 3,
+              "maxItems": 3
+            },
+            "opacityFill": { "type": "number", "minimum": 0, "maximum": 1 },
+            "opacityStroke": { "type": "number", "minimum": 0, "maximum": 1 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["op", "target", "style"]
+    }
+  }
+}
