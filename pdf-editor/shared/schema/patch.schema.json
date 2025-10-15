@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PatchOperations",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["op", "target"],
+    "properties": {
+      "op": {
+        "type": "string",
+        "enum": ["transform", "editText", "setStyle"]
+      },
+      "target": {
+        "type": "object",
+        "required": ["page", "id"],
+        "properties": {
+          "page": { "type": "integer", "minimum": 0 },
+          "id": { "type": "string" }
+        }
+      }
+    },
+    "allOf": [
+      {
+        "if": {
+          "properties": { "op": { "const": "transform" } }
+        },
+        "then": {
+          "required": ["deltaMatrixPt", "kind"],
+          "properties": {
+            "deltaMatrixPt": {
+              "type": "array",
+              "items": { "type": "number" },
+              "minItems": 6,
+              "maxItems": 6
+            },
+            "kind": {
+              "type": "string",
+              "enum": ["text", "image", "path"]
+            }
+          }
+        }
+      },
+      {
+        "if": { "properties": { "op": { "const": "editText" } } },
+        "then": {
+          "required": ["text"],
+          "properties": {
+            "text": { "type": "string" },
+            "fontPref": {
+              "type": "object",
+              "properties": {
+                "preferExisting": { "type": "boolean" },
+                "fallbackFamily": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      {
+        "if": { "properties": { "op": { "const": "setStyle" } } },
+        "then": {
+          "required": ["style"],
+          "properties": {
+            "style": {
+              "type": "object",
+              "properties": {
+                "fillColor": { "type": "string" },
+                "strokeColor": { "type": "string" },
+                "opacityFill": { "type": "number", "minimum": 0, "maximum": 1 },
+                "opacityStroke": { "type": "number", "minimum": 0, "maximum": 1 }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

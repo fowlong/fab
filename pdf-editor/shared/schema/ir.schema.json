@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DocumentIR",
+  "type": "object",
+  "properties": {
+    "pages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "index": { "type": "integer", "minimum": 0 },
+          "widthPt": { "type": "number", "minimum": 0 },
+          "heightPt": { "type": "number", "minimum": 0 },
+          "objects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "kind", "pdfRef", "bbox"],
+              "properties": {
+                "id": { "type": "string" },
+                "kind": { "type": "string", "enum": ["text", "image", "path"] },
+                "pdfRef": {
+                  "type": "object",
+                  "properties": {
+                    "obj": { "type": "integer", "minimum": 0 },
+                    "gen": { "type": "integer", "minimum": 0 }
+                  },
+                  "required": ["obj", "gen"]
+                },
+                "bbox": {
+                  "type": "array",
+                  "items": { "type": "number" },
+                  "minItems": 4,
+                  "maxItems": 4
+                }
+              },
+              "allOf": [
+                {
+                  "if": { "properties": { "kind": { "const": "text" } } },
+                  "then": {
+                    "required": ["Tm", "font", "unicode", "glyphs"],
+                    "properties": {
+                      "Tm": {
+                        "type": "array",
+                        "items": { "type": "number" },
+                        "minItems": 6,
+                        "maxItems": 6
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": { "properties": { "kind": { "const": "image" } } },
+                  "then": {
+                    "required": ["cm", "xObject"],
+                    "properties": {
+                      "cm": {
+                        "type": "array",
+                        "items": { "type": "number" },
+                        "minItems": 6,
+                        "maxItems": 6
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": { "properties": { "kind": { "const": "path" } } },
+                  "then": {
+                    "required": ["cm", "operations"],
+                    "properties": {
+                      "cm": {
+                        "type": "array",
+                        "items": { "type": "number" },
+                        "minItems": 6,
+                        "maxItems": 6
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "required": ["index", "widthPt", "heightPt", "objects"]
+      }
+    }
+  },
+  "required": ["pages"]
+}

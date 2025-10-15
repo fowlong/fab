@@ -1,0 +1,19 @@
+[package]
+name = "pdf-editor-backend"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = { version = "0.7", features = ["json", "multipart"] }
+anyhow = "1"
+thiserror = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+lopdf = "0.31"
+harfbuzz_rs = "2.0"
+ttf-parser = "0.20"
+lazy_static = "1"
+uuid = { version = "1", features = ["v4"] }
+parking_lot = "0.12"
+base64 = "0.21"

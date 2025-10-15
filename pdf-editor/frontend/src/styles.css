@@ -1,0 +1,103 @@
+:root {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #1f2933;
+  background-color: #f5f7fa;
+}
+
+body,
+html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+#app {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  height: 100vh;
+}
+
+.sidebar {
+  padding: 1rem;
+  border-right: 1px solid #d8e2f1;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow-y: auto;
+}
+
+.main {
+  position: relative;
+  overflow: auto;
+  background: linear-gradient(45deg, #f3f4f6 25%, transparent 25%),
+    linear-gradient(-45deg, #f3f4f6 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #f3f4f6 75%),
+    linear-gradient(-45deg, transparent 75%, #f3f4f6 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.toolbar button {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #cbd5f5;
+  background-color: #e8edff;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.toolbar button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.stage {
+  position: relative;
+  width: fit-content;
+  margin: 2rem auto;
+}
+
+.canvas-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.overlay-root {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.overlay-root .page-layer {
+  position: relative;
+}
+
+.pdf-preview,
+.fabric-overlay {
+  display: block;
+}
+
+.pdf-preview {
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
+  margin-bottom: 1.5rem;
+}
+
+.fabric-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.status {
+  font-size: 0.85rem;
+  color: #64748b;
+}
