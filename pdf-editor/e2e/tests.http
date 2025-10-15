@@ -1,0 +1,29 @@
+### Open sample PDF
+POST http://localhost:8787/api/open
+Content-Type: multipart/form-data; boundary=BOUNDARY
+
+--BOUNDARY
+Content-Disposition: form-data; name="file"; filename="sample.pdf"
+Content-Type: application/pdf
+
+< ./sample.pdf
+--BOUNDARY--
+
+### Fetch IR (replace DOC_ID with response from open)
+GET http://localhost:8787/api/ir/DOC_ID
+
+### Apply transform patch
+POST http://localhost:8787/api/patch/DOC_ID
+Content-Type: application/json
+
+[
+  {
+    "op": "transform",
+    "target": {"page": 0, "id": "t:1"},
+    "deltaMatrixPt": [1,0,0,1,10,10],
+    "kind": "text"
+  }
+]
+
+### Download PDF
+GET http://localhost:8787/api/pdf/DOC_ID

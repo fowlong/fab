@@ -1,0 +1,20 @@
+{
+  "name": "pdf-editor-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "fabric": "^5.3.0",
+    "pdfjs-dist": "^3.11.174"
+  },
+  "devDependencies": {
+    "@types/dom-screen-capture": "^1.0.3",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.0"
+  }
+}

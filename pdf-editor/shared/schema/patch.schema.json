@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PatchRequest",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["op", "target"],
+    "properties": {
+      "op": {
+        "type": "string",
+        "enum": ["transform", "editText", "setStyle"]
+      },
+      "target": {
+        "type": "object",
+        "required": ["page", "id"],
+        "properties": {
+          "page": {"type": "integer", "minimum": 0},
+          "id": {"type": "string"}
+        }
+      },
+      "deltaMatrixPt": {
+        "type": "array",
+        "items": {"type": "number"},
+        "minItems": 6,
+        "maxItems": 6
+      },
+      "kind": {"type": "string"},
+      "text": {"type": "string"},
+      "fontPref": {
+        "type": "object",
+        "properties": {
+          "preferExisting": {"type": "boolean"},
+          "fallbackFamily": {"type": "string"}
+        }
+      },
+      "style": {
+        "type": "object",
+        "properties": {
+          "opacityFill": {"type": "number", "minimum": 0, "maximum": 1},
+          "opacityStroke": {"type": "number", "minimum": 0, "maximum": 1},
+          "fillColor": {"type": "string"},
+          "strokeColor": {"type": "string"}
+        }
+      }
+    },
+    "additionalProperties": false
+  }
+}
