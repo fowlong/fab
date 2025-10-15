@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Patch",
+  "type": "array",
+  "items": {
+    "oneOf": [
+      { "$ref": "#/definitions/Transform" },
+      { "$ref": "#/definitions/EditText" },
+      { "$ref": "#/definitions/SetStyle" }
+    ]
+  },
+  "definitions": {
+    "Target": {
+      "type": "object",
+      "properties": {
+        "page": { "type": "integer" },
+        "id": { "type": "string" }
+      },
+      "required": ["page", "id"]
+    },
+    "Transform": {
+      "type": "object",
+      "properties": {
+        "op": { "const": "transform" },
+        "target": { "$ref": "#/definitions/Target" },
+        "deltaMatrixPt": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 6,
+          "maxItems": 6
+        },
+        "kind": { "enum": ["text", "image", "path"] }
+      },
+      "required": ["op", "target", "deltaMatrixPt", "kind"]
+    },
+    "EditText": {
+      "type": "object",
+      "properties": {
+        "op": { "const": "editText" },
+        "target": { "$ref": "#/definitions/Target" },
+        "text": { "type": "string" },
+        "fontPref": {
+          "type": "object",
+          "properties": {
+            "preferExisting": { "type": "boolean" },
+            "fallbackFamily": { "type": "string" }
+          },
+          "required": ["preferExisting"]
+        }
+      },
+      "required": ["op", "target", "text", "fontPref"]
+    },
+    "SetStyle": {
+      "type": "object",
+      "properties": {
+        "op": { "const": "setStyle" },
+        "target": { "$ref": "#/definitions/Target" },
+        "style": { "type": "object" }
+      },
+      "required": ["op", "target", "style"]
+    }
+  }
+}
