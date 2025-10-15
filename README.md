@@ -20,19 +20,7 @@ The codebase is licensed under Apache-2.0. All third-party dependencies are limi
 
 ## Current status
 
-The current commit provides initial scaffolding for the frontend and backend projects together with strongly typed interfaces for the IR and patch protocol. Full PDF parsing, shaping, and editing logic are stubbed but the core routes and client wiring are ready for incremental feature development.
-
-### Frontend
-
-* Vite configuration for a TypeScript entry point.
-* Shared utility modules for coordinate math, Fabric.js mapping helpers, and API bindings.
-* React-free vanilla TypeScript app that renders pdf.js canvases and a Fabric overlay placeholder.
-
-### Backend
-
-* `cargo` workspace with Axum HTTP server skeleton.
-* Placeholder modules for PDF parsing, content tokenisation, patching, and font handling.
-* Data structures mirroring the JSON contracts shared with the frontend.
+Stage two of the project delivers a working end-to-end transform editor. The backend parses PDF content streams, emits an intermediate representation for page zero, and applies transform patches by rewriting matrices inside new incremental revisions. The frontend renders page zero with `pdf.js`, overlays Fabric.js controllers on text runs and image XObjects, and posts transform patches when the user drags, rotates, or scales an object. Each patch results in a fresh incremental revision that can be downloaded.
 
 ## Getting started
 
@@ -40,6 +28,15 @@ The current commit provides initial scaffolding for the frontend and backend pro
 
 * Node.js 18+
 * Rust toolchain (stable)
+
+### Backend
+
+```
+cd backend
+cargo run
+```
+
+The Axum server listens on <http://127.0.0.1:8787>. CORS is configured for the Vite dev server on port 5173.
 
 ### Frontend
 
@@ -49,16 +46,16 @@ npm install
 npm run dev
 ```
 
-The development server listens on <http://localhost:5173>. For now it renders placeholder canvases because the backend does not yet implement PDF parsing.
+The frontend dev server runs on <http://localhost:5173>.
 
-### Backend
+### Manual test plan
 
-```
-cd backend
-cargo run
-```
-
-The Axum server starts on <http://localhost:8787>. The `/api/open`, `/api/ir/:docId`, `/api/patch/:docId`, and `/api/pdf/:docId` routes are stubbed and return mock data.
+1. Start both servers as outlined above.
+2. Open <http://localhost:5173> in a browser.
+3. Click “Load sample document” to fetch the bundled one-page PDF containing a text run and an image.
+4. Drag the blue text controller roughly 50 px right and 20 px down, rotate it ~10°, and apply a slight scale. The PDF preview should re-render with the updated placement once the patch succeeds.
+5. Drag and rotate the image controller; the image should move in the PDF underlay after the patch completes.
+6. Use the “Download current PDF” button to retrieve the incrementally saved document and confirm that the updated transforms are present when opened in an external viewer.
 
 ## Roadmap
 

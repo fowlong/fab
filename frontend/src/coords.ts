@@ -1,8 +1,6 @@
-export type Matrix = [number, number, number, number, number, number];
+import type { Matrix } from './types';
 
-export const POINTS_PER_INCH = 72;
-export const CSS_DPI = 96;
-export const SCALE = POINTS_PER_INCH / CSS_DPI; // 0.75
+export const S = 72 / 96; // px → pt
 
 export function multiply(a: Matrix, b: Matrix): Matrix {
   const [a0, a1, a2, a3, a4, a5] = a;
@@ -34,11 +32,7 @@ export function invert(m: Matrix): Matrix {
 }
 
 export function pxToPtMatrix(pageHeightPt: number): Matrix {
-  return [SCALE, 0, 0, -SCALE, 0, pageHeightPt];
-}
-
-export function ptToPxMatrix(pageHeightPt: number): Matrix {
-  return invert(pxToPtMatrix(pageHeightPt));
+  return [S, 0, 0, -S, 0, pageHeightPt];
 }
 
 export function fabricDeltaToPdfDelta(
