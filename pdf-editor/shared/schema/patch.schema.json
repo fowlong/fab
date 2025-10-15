@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PDF Patch Operations",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "oneOf": [
+      {
+        "properties": {
+          "op": { "const": "transform" },
+          "target": {
+            "type": "object",
+            "properties": {
+              "page": { "type": "integer" },
+              "id": { "type": "string" }
+            },
+            "required": ["page", "id"],
+            "additionalProperties": false
+          },
+          "kind": { "enum": ["text", "image", "path"] },
+          "deltaMatrixPt": {
+            "type": "array",
+            "items": { "type": "number" },
+            "minItems": 6,
+            "maxItems": 6
+          }
+        },
+        "required": ["op", "target", "kind", "deltaMatrixPt"],
+        "additionalProperties": false
+      },
+      {
+        "properties": {
+          "op": { "const": "editText" },
+          "target": {
+            "type": "object",
+            "properties": {
+              "page": { "type": "integer" },
+              "id": { "type": "string" }
+            },
+            "required": ["page", "id"],
+            "additionalProperties": false
+          },
+          "text": { "type": "string" }
+        },
+        "required": ["op", "target", "text"],
+        "additionalProperties": true
+      },
+      {
+        "properties": {
+          "op": { "const": "setStyle" },
+          "target": {
+            "type": "object",
+            "properties": {
+              "page": { "type": "integer" },
+              "id": { "type": "string" }
+            },
+            "required": ["page", "id"],
+            "additionalProperties": false
+          },
+          "style": { "type": "object" }
+        },
+        "required": ["op", "target", "style"],
+        "additionalProperties": true
+      }
+    ]
+  }
+}

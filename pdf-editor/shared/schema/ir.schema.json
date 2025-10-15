@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PDF Intermediate Representation",
+  "type": "object",
+  "properties": {
+    "pages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "index": { "type": "integer" },
+          "widthPt": { "type": "number" },
+          "heightPt": { "type": "number" },
+          "objects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "kind", "bbox"],
+              "properties": {
+                "id": { "type": "string" },
+                "kind": { "enum": ["text", "image", "path"] },
+                "bbox": {
+                  "type": "array",
+                  "items": { "type": "number" },
+                  "minItems": 4,
+                  "maxItems": 4
+                }
+              },
+              "additionalProperties": true
+            }
+          }
+        },
+        "required": ["index", "widthPt", "heightPt", "objects"],
+        "additionalProperties": true
+      }
+    }
+  },
+  "required": ["pages"],
+  "additionalProperties": false
+}
