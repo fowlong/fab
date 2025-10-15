@@ -1,0 +1,141 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DocumentIr",
+  "type": "object",
+  "properties": {
+    "pages": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Page" }
+    }
+  },
+  "required": ["pages"],
+  "$defs": {
+    "Matrix": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 6,
+      "maxItems": 6
+    },
+    "PdfRef": {
+      "type": "object",
+      "properties": {
+        "obj": { "type": "integer" },
+        "gen": { "type": "integer" }
+      },
+      "required": ["obj", "gen"]
+    },
+    "BtSpan": {
+      "type": "object",
+      "properties": {
+        "start": { "type": "integer" },
+        "end": { "type": "integer" },
+        "streamObj": { "type": "integer" }
+      },
+      "required": ["start", "end", "streamObj"]
+    },
+    "GlyphRun": {
+      "type": "object",
+      "properties": {
+        "gid": { "type": "integer" },
+        "dx": { "type": "number" },
+        "dy": { "type": "number" }
+      },
+      "required": ["gid", "dx", "dy"]
+    },
+    "FontDescriptor": {
+      "type": "object",
+      "properties": {
+        "resName": { "type": "string" },
+        "size": { "type": "number" },
+        "type": { "type": "string" }
+      },
+      "required": ["resName", "size", "type"]
+    },
+    "Page": {
+      "type": "object",
+      "properties": {
+        "index": { "type": "integer" },
+        "widthPt": { "type": "number" },
+        "heightPt": { "type": "number" },
+        "objects": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/PageObject" }
+        }
+      },
+      "required": ["index", "widthPt", "heightPt", "objects"]
+    },
+    "PageObject": {
+      "oneOf": [
+        { "$ref": "#/$defs/TextObject" },
+        { "$ref": "#/$defs/ImageObject" },
+        { "$ref": "#/$defs/PathObject" }
+      ]
+    },
+    "TextObject": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "text" },
+        "id": { "type": "string" },
+        "pdfRef": { "$ref": "#/$defs/PdfRef" },
+        "btSpan": { "$ref": "#/$defs/BtSpan" },
+        "Tm": { "$ref": "#/$defs/Matrix" },
+        "font": { "$ref": "#/$defs/FontDescriptor" },
+        "unicode": { "type": "string" },
+        "glyphs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/GlyphRun" }
+        },
+        "bbox": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 4,
+          "maxItems": 4
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "pdfRef",
+        "btSpan",
+        "Tm",
+        "font",
+        "unicode",
+        "glyphs",
+        "bbox"
+      ]
+    },
+    "ImageObject": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "image" },
+        "id": { "type": "string" },
+        "pdfRef": { "$ref": "#/$defs/PdfRef" },
+        "xObject": { "type": "string" },
+        "cm": { "$ref": "#/$defs/Matrix" },
+        "bbox": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 4,
+          "maxItems": 4
+        }
+      },
+      "required": ["kind", "id", "pdfRef", "xObject", "cm", "bbox"]
+    },
+    "PathObject": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "path" },
+        "id": { "type": "string" },
+        "pdfRef": { "$ref": "#/$defs/PdfRef" },
+        "cm": { "$ref": "#/$defs/Matrix" },
+        "bbox": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 4,
+          "maxItems": 4
+        }
+      },
+      "required": ["kind", "id", "pdfRef", "cm", "bbox"]
+    }
+  }
+}

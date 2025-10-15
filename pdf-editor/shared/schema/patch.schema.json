@@ -1,0 +1,91 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PatchOperations",
+  "type": "array",
+  "items": {
+    "oneOf": [
+      { "$ref": "#/$defs/TransformPatch" },
+      { "$ref": "#/$defs/EditTextPatch" },
+      { "$ref": "#/$defs/SetStylePatch" }
+    ]
+  },
+  "$defs": {
+    "Matrix": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 6,
+      "maxItems": 6
+    },
+    "PatchTarget": {
+      "type": "object",
+      "properties": {
+        "page": { "type": "integer", "minimum": 0 },
+        "id": { "type": "string" }
+      },
+      "required": ["page", "id"],
+      "additionalProperties": false
+    },
+    "TransformPatch": {
+      "type": "object",
+      "properties": {
+        "op": { "const": "transform" },
+        "target": { "$ref": "#/$defs/PatchTarget" },
+        "deltaMatrixPt": { "$ref": "#/$defs/Matrix" },
+        "kind": {
+          "type": "string",
+          "enum": ["text", "image", "path"],
+          "nullable": true
+        }
+      },
+      "required": ["op", "target", "deltaMatrixPt"],
+      "additionalProperties": false
+    },
+    "EditTextPatch": {
+      "type": "object",
+      "properties": {
+        "op": { "const": "editText" },
+        "target": { "$ref": "#/$defs/PatchTarget" },
+        "text": { "type": "string" },
+        "fontPref": {
+          "type": "object",
+          "properties": {
+            "preferExisting": { "type": "boolean" },
+            "fallbackFamily": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["op", "target", "text"],
+      "additionalProperties": false
+    },
+    "SetStylePatch": {
+      "type": "object",
+      "properties": {
+        "op": { "const": "setStyle" },
+        "target": { "$ref": "#/$defs/PatchTarget" },
+        "style": {
+          "type": "object",
+          "properties": {
+            "colorFill": {
+              "type": "array",
+              "items": { "type": "number" },
+              "minItems": 3,
+              "maxItems": 3
+            },
+            "colorStroke": {
+              "type": "array",
+              "items": { "type": "number" },
+              "minItems": 3,
+              "maxItems": 3
+            },
+            "opacityFill": { "type": "number", "minimum": 0, "maximum": 1 },
+            "opacityStroke": { "type": "number", "minimum": 0, "maximum": 1 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["op", "target", "style"],
+      "additionalProperties": false
+    }
+  }
+}

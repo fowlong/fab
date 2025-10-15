@@ -1,0 +1,27 @@
+### Open a PDF (base64 payload truncated for brevity)
+POST http://localhost:8787/api/open
+Content-Type: application/json
+
+{
+  "data": "{{sample_pdf_base64}}",
+  "filename": "sample.pdf"
+}
+
+### Fetch IR
+GET http://localhost:8787/api/ir/{{docId}}
+
+### Apply transform patch
+POST http://localhost:8787/api/patch/{{docId}}
+Content-Type: application/json
+
+[
+  {
+    "op": "transform",
+    "target": {"page": 0, "id": "t:1"},
+    "deltaMatrixPt": [1,0,0,1,10,0],
+    "kind": "text"
+  }
+]
+
+### Download current PDF
+GET http://localhost:8787/api/pdf/{{docId}}
