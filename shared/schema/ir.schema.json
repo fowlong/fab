@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/ir.schema.json",
+  "title": "Intermediate Representation",
+  "type": "object",
+  "required": ["pages"],
+  "properties": {
+    "pages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["index", "widthPt", "heightPt", "objects"],
+        "properties": {
+          "index": { "type": "integer", "minimum": 0 },
+          "widthPt": { "type": "number" },
+          "heightPt": { "type": "number" },
+          "objects": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/object" }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "pdfRef": {
+      "type": "object",
+      "required": ["obj", "gen"],
+      "properties": {
+        "obj": { "type": "integer", "minimum": 0 },
+        "gen": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "bbox": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "matrix": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 6,
+      "maxItems": 6
+    },
+    "object": {
+      "type": "object",
+      "required": ["id", "kind", "bbox", "pdfRef"],
+      "properties": {
+        "id": { "type": "string" },
+        "kind": { "enum": ["text", "image", "path"] },
+        "bbox": { "$ref": "#/definitions/bbox" },
+        "pdfRef": { "$ref": "#/definitions/pdfRef" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "kind": { "const": "text" } }
+          },
+          "then": {
+            "required": ["btSpan", "Tm", "font", "unicode", "glyphs"],
+            "properties": {
+              "btSpan": {
+                "type": "object",
+                "required": ["start", "end", "streamObj"],
+                "properties": {
+                  "start": { "type": "integer", "minimum": 0 },
+                  "end": { "type": "integer", "minimum": 0 },
+                  "streamObj": { "type": "integer", "minimum": 0 }
+                }
+              },
+              "Tm": { "$ref": "#/definitions/matrix" },
+              "font": {
+                "type": "object",
+                "required": ["resName", "size", "type"],
+                "properties": {
+                  "resName": { "type": "string" },
+                  "size": { "type": "number" },
+                  "type": { "type": "string" }
+                }
+              },
+              "unicode": { "type": "string" },
+              "glyphs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["gid", "dx", "dy"],
+                  "properties": {
+                    "gid": { "type": "integer", "minimum": 0 },
+                    "dx": { "type": "number" },
+                    "dy": { "type": "number" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "const": "image" } }
+          },
+          "then": {
+            "required": ["xObject", "cm"],
+            "properties": {
+              "xObject": { "type": "string" },
+              "cm": { "$ref": "#/definitions/matrix" }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "const": "path" } }
+          },
+          "then": {
+            "required": ["cm"],
+            "properties": {
+              "cm": { "$ref": "#/definitions/matrix" }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

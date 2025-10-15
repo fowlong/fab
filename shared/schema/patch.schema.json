@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/patch.schema.json",
+  "title": "Patch Operation",
+  "type": "array",
+  "items": {
+    "oneOf": [
+      {
+        "type": "object",
+        "required": ["op", "target", "deltaMatrixPt", "kind"],
+        "properties": {
+          "op": { "const": "transform" },
+          "target": { "$ref": "#/definitions/target" },
+          "deltaMatrixPt": { "$ref": "#/definitions/matrix" },
+          "kind": { "enum": ["text", "image", "path"] }
+        }
+      },
+      {
+        "type": "object",
+        "required": ["op", "target", "text"],
+        "properties": {
+          "op": { "const": "editText" },
+          "target": { "$ref": "#/definitions/target" },
+          "text": { "type": "string" },
+          "fontPref": {
+            "type": "object",
+            "properties": {
+              "preferExisting": { "type": "boolean" },
+              "fallbackFamily": { "type": ["string", "null"] }
+            }
+          }
+        }
+      },
+      {
+        "type": "object",
+        "required": ["op", "target", "style"],
+        "properties": {
+          "op": { "const": "setStyle" },
+          "target": { "$ref": "#/definitions/target" },
+          "style": {
+            "type": "object",
+            "properties": {
+              "fillColor": { "$ref": "#/definitions/color" },
+              "strokeColor": { "$ref": "#/definitions/color" },
+              "opacityFill": { "type": "number", "minimum": 0, "maximum": 1 },
+              "opacityStroke": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "definitions": {
+    "target": {
+      "type": "object",
+      "required": ["page", "id"],
+      "properties": {
+        "page": { "type": "integer", "minimum": 0 },
+        "id": { "type": "string" }
+      }
+    },
+    "matrix": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 6,
+      "maxItems": 6
+    },
+    "color": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 3,
+      "maxItems": 3
+    }
+  }
+}

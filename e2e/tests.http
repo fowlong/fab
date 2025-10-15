@@ -1,0 +1,19 @@
+### Open sample PDF
+POST http://localhost:8787/api/open
+Content-Type: application/json
+
+{
+  "pdfBase64": "{{samplePdfBase64}}"
+}
+
+### Fetch IR
+GET http://localhost:8787/api/ir/{{docId}}
+
+### Apply noop patch
+POST http://localhost:8787/api/patch/{{docId}}
+Content-Type: application/json
+
+[]
+
+### Download PDF
+GET http://localhost:8787/api/pdf/{{docId}}

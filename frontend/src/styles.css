@@ -1,0 +1,99 @@
+:root {
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  color: #202124;
+  background-color: #f3f4f6;
+}
+
+body,
+html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+#app {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  grid-template-rows: auto 1fr;
+  height: 100%;
+}
+
+.toolbar {
+  grid-column: 1 / span 2;
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.canvas-shell {
+  position: relative;
+  overflow: auto;
+  background: #d1d5db;
+}
+
+.canvas-page {
+  margin: 1rem auto;
+  position: relative;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+  background: white;
+}
+
+.canvas-page canvas {
+  display: block;
+}
+
+.sidebar {
+  padding: 1rem;
+  background: white;
+  border-right: 1px solid #e5e7eb;
+}
+
+.sidebar h2 {
+  font-size: 0.95rem;
+  margin: 0 0 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #4b5563;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.sidebar li {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+
+.button {
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  background: #f9fafb;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.button:hover {
+  background: #edeff2;
+}
+
+.status-toast {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: #1f2937;
+  color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+}
