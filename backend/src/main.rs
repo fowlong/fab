@@ -20,7 +20,7 @@ use axum::{
 };
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
-use tokio::sync::RwLock;
+use tokio::{net::TcpListener, sync::RwLock};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::types::{DocumentIR, PatchOperation, PatchResponse};
@@ -49,12 +49,14 @@ struct OpenResponse {
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::registry()
         .with(
-            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "info".into()),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
 
     let state = AppState::default();
+
     let app = Router::new()
         .route("/api/open", post(open_document))
         .route("/api/ir/:doc_id", get(get_ir))
@@ -62,11 +64,13 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/pdf/:doc_id", get(download_pdf))
         .with_state(state);
 
-    let addr: SocketAddr = ([0, 0, 0, 0], 8787).into();
-    tracing::info!("listening on {addr}");
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await?;
+    // Bind & serve (Axum 0.7 style)
+    // Use 127.0.0.1 for local-only; switch to ([0,0,0,0], 8787) to listen on all interfaces.
+    let addr: SocketAddr = ([127, 0, 0, 1], 8787).into();
+    let listener = TcpListener::bind(addr).await?;
+    tracing::info!("listening on http://{}", listener.local_addr()?);
+    axum::serve(listener, app).await?;
+
     Ok(())
 }
 
@@ -118,9 +122,14 @@ async fn apply_patch(
     let mut store = state.store.write().await;
     let entry = store.get_mut(&doc_id).ok_or(ApiError::NotFound)?;
     let mut ir = entry.ir.clone();
-    pdf::patch::apply_patches(&mut ir, &ops)?;
+    pdf::patch::apply_patches(&mut ir, &ops)?; // stubbed in MVP
     entry.ir = ir;
-    let encoded = format!("data:application/pdf;base64,{}", BASE64.encode(&entry.pdf));
+
+    let encoded = format!(
+        "data:application/pdf;base64,{}",
+        BASE64.encode(&entry.pdf)
+    );
+
     Ok(Json(PatchResponse {
         ok: true,
         updated_pdf: Some(encoded),

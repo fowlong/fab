@@ -1,0 +1,14 @@
+C:\Users\calla\OneDrive\Desktop\New folder (4)\fab\backend\target\debug\deps\serde-9170323d5efe28cb.d: C:\Users\calla\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\lib.rs C:\Users\calla\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\integer128.rs C:\Users\calla\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\mod.rs C:\Users\calla\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\de.rs C:\Users\calla\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\ser.rs C:\Users\calla\OneDrive\Desktop\New\ folder\ (4)\fab\backend\target\debug\build\serde-15a02bf4066364b5\out/private.rs
+
+C:\Users\calla\OneDrive\Desktop\New folder (4)\fab\backend\target\debug\deps\libserde-9170323d5efe28cb.rlib: C:\Users\calla\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\lib.rs C:\Users\calla\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\integer128.rs C:\Users\calla\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\mod.rs C:\Users\calla\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\de.rs C:\Users\calla\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\ser.rs C:\Users\calla\OneDrive\Desktop\New\ folder\ (4)\fab\backend\target\debug\build\serde-15a02bf4066364b5\out/private.rs
+
+C:\Users\calla\OneDrive\Desktop\New folder (4)\fab\backend\target\debug\deps\libserde-9170323d5efe28cb.rmeta: C:\Users\calla\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\lib.rs C:\Users\calla\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\integer128.rs C:\Users\calla\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\mod.rs C:\Users\calla\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\de.rs C:\Users\calla\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\ser.rs C:\Users\calla\OneDrive\Desktop\New\ folder\ (4)\fab\backend\target\debug\build\serde-15a02bf4066364b5\out/private.rs
+
+C:\Users\calla\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\lib.rs:
+C:\Users\calla\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\integer128.rs:
+C:\Users\calla\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\mod.rs:
+C:\Users\calla\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\de.rs:
+C:\Users\calla\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\ser.rs:
+C:\Users\calla\OneDrive\Desktop\New\ folder\ (4)\fab\backend\target\debug\build\serde-15a02bf4066364b5\out/private.rs:
+
+# env-dep:OUT_DIR=C:\\Users\\calla\\OneDrive\\Desktop\\New folder (4)\\fab\\backend\\target\\debug\\build\\serde-15a02bf4066364b5\\out
