@@ -4,42 +4,40 @@ import workerSrc from 'pdfjs-dist/build/pdf.worker?url';
 GlobalWorkerOptions.workerSrc = workerSrc;
 
 export class PdfPreview {
-  private container: HTMLElement;
+  private readonly canvas: HTMLCanvasElement;
   private pdf: PDFDocumentProxy | null = null;
-  private pageSizes: Array<{ width: number; height: number }> = [];
 
-  constructor(container: HTMLElement) {
-    this.container = container;
+  constructor(canvas: HTMLCanvasElement) {
+    this.canvas = canvas;
   }
 
-  async load(arrayBuffer: ArrayBuffer) {
+  async render(data: ArrayBuffer): Promise<{ width: number; height: number }> {
     this.reset();
-    this.pdf = await getDocument({ data: arrayBuffer }).promise;
-    this.pageSizes = [];
-    for (let pageIndex = 1; pageIndex <= this.pdf.numPages; pageIndex += 1) {
-      const page = await this.pdf.getPage(pageIndex);
-      const viewport = page.getViewport({ scale: 1 });
-      const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      canvas.className = 'pdf-page-canvas';
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        throw new Error('Failed to get canvas context');
-      }
-      await page.render({ canvasContext: ctx, viewport }).promise;
-      this.container.appendChild(canvas);
-      this.pageSizes.push({ width: viewport.width, height: viewport.height });
+    this.pdf = await getDocument({ data }).promise;
+    const page = await this.pdf.getPage(1);
+    const viewport = page.getViewport({ scale: 1 });
+    this.canvas.width = viewport.width;
+    this.canvas.height = viewport.height;
+    this.canvas.style.width = `${viewport.width}px`;
+    this.canvas.style.height = `${viewport.height}px`;
+    const context = this.canvas.getContext('2d');
+    if (!context) {
+      throw new Error('Failed to obtain canvas context');
     }
+    context.clearRect(0, 0, viewport.width, viewport.height);
+    await page.render({ canvasContext: context, viewport }).promise;
+    return { width: viewport.width, height: viewport.height };
   }
 
-  reset() {
-    this.container.innerHTML = '';
+  reset(): void {
+    const context = this.canvas.getContext('2d');
+    if (context) {
+      context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+    this.canvas.width = 0;
+    this.canvas.height = 0;
+    this.canvas.style.width = '0px';
+    this.canvas.style.height = '0px';
     this.pdf = null;
-    this.pageSizes = [];
-  }
-
-  getSizes() {
-    return [...this.pageSizes];
   }
 }
