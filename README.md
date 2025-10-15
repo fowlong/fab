@@ -20,19 +20,21 @@ The codebase is licensed under Apache-2.0. All third-party dependencies are limi
 
 ## Current status
 
-The current commit provides initial scaffolding for the frontend and backend projects together with strongly typed interfaces for the IR and patch protocol. Full PDF parsing, shaping, and editing logic are stubbed but the core routes and client wiring are ready for incremental feature development.
+This milestone implements the minimum viable pipeline for transforming text runs and image XObjects in a PDF content stream. The backend loads a document, builds an intermediate representation for page 0, and applies transform patches by rewriting the relevant `Tm` or `cm` matrices inside an incremental update. The frontend renders page 0 with `pdf.js`, draws Fabric.js controllers, and relays drag/rotate/scale gestures back to the backend as matrix deltas.
 
 ### Frontend
 
-* Vite configuration for a TypeScript entry point.
-* Shared utility modules for coordinate math, Fabric.js mapping helpers, and API bindings.
-* React-free vanilla TypeScript app that renders pdf.js canvases and a Fabric overlay placeholder.
+* Vite-powered TypeScript application without a framework runtime.
+* `pdf.js` underlay paired with Fabric.js overlays that expose draggable controllers for each text run or image.
+* Coordinate utilities that convert between pixel space and PDF points so Fabric gestures become precise matrix deltas.
+* API bindings for `/api/open`, `/api/ir`, `/api/patch`, and `/api/pdf`, including support for downloading the latest revision.
 
 ### Backend
 
-* `cargo` workspace with Axum HTTP server skeleton.
-* Placeholder modules for PDF parsing, content tokenisation, patching, and font handling.
-* Data structures mirroring the JSON contracts shared with the frontend.
+* Axum server with CORS configured for the Vite dev server.
+* PDF loader based on `lopdf` that tokenises page-0 content streams, derives a lightweight IR, and caches stream operations.
+* Patch handler that left-multiplies text `Tm` matrices or image `cm` matrices, rewrites the affected stream, and appends a new incremental revision.
+* Incremental writer built on `lopdf::IncrementalDocument` so the updated PDF preserves the original bytes with a small tail.
 
 ## Getting started
 
@@ -49,7 +51,7 @@ npm install
 npm run dev
 ```
 
-The development server listens on <http://localhost:5173>. For now it renders placeholder canvases because the backend does not yet implement PDF parsing.
+The development server listens on <http://localhost:5173>.
 
 ### Backend
 
@@ -58,13 +60,21 @@ cd backend
 cargo run
 ```
 
-The Axum server starts on <http://localhost:8787>. The `/api/open`, `/api/ir/:docId`, `/api/patch/:docId`, and `/api/pdf/:docId` routes are stubbed and return mock data.
+The Axum server starts on <http://localhost:8787>.
+
+### Stage 2 verification steps
+
+1. Start the backend (`cargo run`) and the Vite dev server (`npm run dev`).
+2. Open <http://localhost:5173> and click “Load sample” to fetch the bundled one-page PDF.
+3. Drag the text controller 50&nbsp;px to the right and 20&nbsp;px down, rotate it roughly 10°, and scale it slightly (≈1.1×). The underlay re-renders and the controller remains in sync.
+4. Drag and rotate the image controller. The preview refreshes with the image in the new pose.
+5. Click “Download PDF” and open the file in an external viewer; the text and image appear with the updated transforms. Inspecting the content stream shows the updated `Tm`/`cm` matrices appended via incremental save.
 
 ## Roadmap
 
-* Implement real PDF parsing in `backend/src/pdf/extract.rs`.
-* Produce incremental updates for transform, text edit, and style patches.
-* Complete the Fabric overlay controller logic and inline text editing UX.
+* Extend the IR to cover additional operators (paths, form XObjects, text edits).
+* Implement incremental updates for text editing and style changes.
+* Polish the Fabric overlay UX (keyboard nudging, snapping, better hit-testing).
 * Add automated end-to-end tests in `/e2e` that exercise representative editing scenarios.
 
 Contributions are welcome via pull requests.
