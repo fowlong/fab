@@ -18,28 +18,25 @@ The `frontend` folder contains the Vite + TypeScript application that renders PD
 
 The codebase is licensed under Apache-2.0. All third-party dependencies are limited to permissive licences as listed in the project plan (MIT or Apache-2.0).
 
-## Current status
+## Stage 2: Transform MVP
 
-The current commit provides initial scaffolding for the frontend and backend projects together with strongly typed interfaces for the IR and patch protocol. Full PDF parsing, shaping, and editing logic are stubbed but the core routes and client wiring are ready for incremental feature development.
-
-### Frontend
-
-* Vite configuration for a TypeScript entry point.
-* Shared utility modules for coordinate math, Fabric.js mapping helpers, and API bindings.
-* React-free vanilla TypeScript app that renders pdf.js canvases and a Fabric overlay placeholder.
+The project now provides a working end-to-end transform workflow for page 0. Users can select a PDF, manipulate Fabric.js overlays that track text runs and image XObjects, and download an incrementally updated PDF with the revised matrices. The backend caches parsed documents, rewrites only the affected content stream, and keeps the original bytes untouched.
 
 ### Backend
 
-* `cargo` workspace with Axum HTTP server skeleton.
-* Placeholder modules for PDF parsing, content tokenisation, patching, and font handling.
-* Data structures mirroring the JSON contracts shared with the frontend.
+Start the Axum server:
 
-## Getting started
+```
+cd backend
+cargo run
+```
 
-### Prerequisites
+The service listens on <http://localhost:8787> and exposes:
 
-* Node.js 18+
-* Rust toolchain (stable)
+* `POST /api/open` – persist uploaded bytes under `/tmp/fab/<docId>.pdf` and return a `docId`.
+* `GET /api/ir/:docId` – return the text/image IR for page 0, including `Tm`/`cm` matrices and byte spans.
+* `POST /api/patch/:docId` – accept transform operations, update the relevant matrices, and append an incremental trailer while returning the updated PDF as a data URL.
+* `GET /api/pdf/:docId` – stream the most recent PDF bytes for preview or download.
 
 ### Frontend
 
@@ -49,22 +46,14 @@ npm install
 npm run dev
 ```
 
-The development server listens on <http://localhost:5173>. For now it renders placeholder canvases because the backend does not yet implement PDF parsing.
+The Vite dev server runs on <http://localhost:5173>. Upload a single-page PDF, drag/rotate/scale the transparent controllers, and press “Download updated PDF” to save the rewritten file.
 
-### Backend
+### Manual verification
 
-```
-cd backend
-cargo run
-```
+1. Launch both servers with the commands above.
+2. Upload a PDF containing at least one text block and one image.
+3. Move the text overlay ~50 px right and ~20 px down, rotate about 10°, and scale slightly; download the PDF and confirm the text moved accordingly.
+4. Repeat with the image overlay and verify that only the `cm` matrix changed.
+5. Inspect the PDF content stream (for example with `qpdf --show-pages`) to check that only the relevant `Tm`/`cm` operator changed and no duplicate drawing commands remain.
 
-The Axum server starts on <http://localhost:8787>. The `/api/open`, `/api/ir/:docId`, `/api/patch/:docId`, and `/api/pdf/:docId` routes are stubbed and return mock data.
-
-## Roadmap
-
-* Implement real PDF parsing in `backend/src/pdf/extract.rs`.
-* Produce incremental updates for transform, text edit, and style patches.
-* Complete the Fabric overlay controller logic and inline text editing UX.
-* Add automated end-to-end tests in `/e2e` that exercise representative editing scenarios.
-
-Contributions are welcome via pull requests.
+All dependencies remain under permissive licences (MIT or Apache-2.0).
