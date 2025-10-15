@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DocumentIR",
+  "type": "object",
+  "required": ["pages"],
+  "properties": {
+    "pages": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/page" }
+    },
+    "meta": {
+      "type": "object",
+      "properties": {
+        "pdfData": { "type": "string" },
+        "pageCount": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": true
+    }
+  },
+  "definitions": {
+    "page": {
+      "type": "object",
+      "required": ["index", "widthPt", "heightPt", "objects"],
+      "properties": {
+        "index": { "type": "integer", "minimum": 0 },
+        "widthPt": { "type": "number" },
+        "heightPt": { "type": "number" },
+        "objects": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/object" }
+        }
+      }
+    },
+    "object": {
+      "type": "object",
+      "required": ["id", "kind", "bbox"],
+      "properties": {
+        "id": { "type": "string" },
+        "kind": { "type": "string", "enum": ["text", "image", "path"] },
+        "bbox": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "pdfRef": {
+          "type": "object",
+          "required": ["obj", "gen"],
+          "properties": {
+            "obj": { "type": "integer", "minimum": 0 },
+            "gen": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "Tm": { "$ref": "#/definitions/matrix" },
+        "cm": { "$ref": "#/definitions/matrix" }
+      },
+      "additionalProperties": true
+    },
+    "matrix": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 6,
+      "maxItems": 6
+    }
+  },
+  "additionalProperties": false
+}
