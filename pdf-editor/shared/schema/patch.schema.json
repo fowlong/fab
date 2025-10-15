@@ -1,0 +1,85 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PatchOperations",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["op", "target"],
+    "properties": {
+      "op": {
+        "type": "string",
+        "enum": ["transform", "editText", "setStyle"]
+      },
+      "target": {
+        "type": "object",
+        "required": ["page", "id"],
+        "properties": {
+          "page": { "type": "integer", "minimum": 0 },
+          "id": { "type": "string" }
+        }
+      }
+    },
+    "allOf": [
+      {
+        "if": { "properties": { "op": { "const": "transform" } } },
+        "then": {
+          "required": ["kind", "deltaMatrixPt"],
+          "properties": {
+            "kind": { "type": "string", "enum": ["text", "image", "path"] },
+            "deltaMatrixPt": {
+              "type": "array",
+              "items": { "type": "number" },
+              "minItems": 6,
+              "maxItems": 6
+            }
+          }
+        }
+      },
+      {
+        "if": { "properties": { "op": { "const": "editText" } } },
+        "then": {
+          "required": ["text"],
+          "properties": {
+            "fontPref": {
+              "type": "object",
+              "properties": {
+                "preferExisting": { "type": "boolean" },
+                "fallbackFamily": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          }
+        }
+      },
+      {
+        "if": { "properties": { "op": { "const": "setStyle" } } },
+        "then": {
+          "required": ["style"],
+          "properties": {
+            "style": {
+              "type": "object",
+              "properties": {
+                "opacityFill": { "type": "number", "minimum": 0, "maximum": 1 },
+                "opacityStroke": { "type": "number", "minimum": 0, "maximum": 1 },
+                "fillColor": {
+                  "type": "array",
+                  "items": { "type": "number" },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "strokeColor": {
+                  "type": "array",
+                  "items": { "type": "number" },
+                  "minItems": 3,
+                  "maxItems": 3
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        }
+      }
+    ],
+    "additionalProperties": false
+  }
+}

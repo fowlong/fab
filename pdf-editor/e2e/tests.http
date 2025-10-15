@@ -1,0 +1,19 @@
+### Upload a sample PDF
+POST http://localhost:8787/api/open
+Content-Type: multipart/form-data; boundary=BOUNDARY
+
+--BOUNDARY
+Content-Disposition: form-data; name="file"; filename="sample.pdf"
+Content-Type: application/pdf
+
+< ./sample.pdf
+--BOUNDARY--
+
+### Fetch the document IR
+GET http://localhost:8787/api/ir/{{docId}}
+
+### Apply a no-op patch to retrieve the incremental PDF
+POST http://localhost:8787/api/patch/{{docId}}
+Content-Type: application/json
+
+[]

@@ -1,0 +1,102 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DocumentIR",
+  "type": "object",
+  "required": ["docId", "pages"],
+  "properties": {
+    "docId": { "type": "string" },
+    "pdfUrl": { "type": "string", "format": "uri", "nullable": true },
+    "pages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["index", "widthPt", "heightPt", "objects"],
+        "properties": {
+          "index": { "type": "integer", "minimum": 0 },
+          "widthPt": { "type": "number" },
+          "heightPt": { "type": "number" },
+          "objects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "kind", "bbox"],
+              "properties": {
+                "id": { "type": "string" },
+                "kind": { "type": "string", "enum": ["text", "image", "path"] },
+                "bbox": {
+                  "type": "array",
+                  "items": { "type": "number" },
+                  "minItems": 4,
+                  "maxItems": 4
+                }
+              },
+              "allOf": [
+                {
+                  "if": { "properties": { "kind": { "const": "text" } } },
+                  "then": {
+                    "required": ["pdfRef", "Tm", "font", "unicode"],
+                    "properties": {
+                      "pdfRef": {
+                        "type": "object",
+                        "required": ["obj", "gen"],
+                        "properties": {
+                          "obj": { "type": "integer" },
+                          "gen": { "type": "integer" }
+                        }
+                      },
+                      "Tm": {
+                        "type": "array",
+                        "items": { "type": "number" },
+                        "minItems": 6,
+                        "maxItems": 6
+                      },
+                      "font": {
+                        "type": "object",
+                        "required": ["resName", "size", "type"],
+                        "properties": {
+                          "resName": { "type": "string" },
+                          "size": { "type": "number" },
+                          "type": { "type": "string" }
+                        }
+                      },
+                      "unicode": { "type": "string" }
+                    }
+                  }
+                },
+                {
+                  "if": { "properties": { "kind": { "const": "image" } } },
+                  "then": {
+                    "required": ["pdfRef", "xObject", "cm"],
+                    "properties": {
+                      "xObject": { "type": "string" },
+                      "cm": {
+                        "type": "array",
+                        "items": { "type": "number" },
+                        "minItems": 6,
+                        "maxItems": 6
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": { "properties": { "kind": { "const": "path" } } },
+                  "then": {
+                    "required": ["pdfRef", "cm"],
+                    "properties": {
+                      "cm": {
+                        "type": "array",
+                        "items": { "type": "number" },
+                        "minItems": 6,
+                        "maxItems": 6
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
