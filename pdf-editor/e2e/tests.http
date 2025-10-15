@@ -1,0 +1,21 @@
+### Open document
+POST http://localhost:8787/api/open
+
+### Fetch IR
+GET http://localhost:8787/api/ir/doc-1
+
+### Apply transform patch
+POST http://localhost:8787/api/patch/doc-1
+Content-Type: application/json
+
+[
+  {
+    "op": "transform",
+    "target": { "page": 0, "id": "t:1" },
+    "kind": "text",
+    "deltaMatrixPt": [1,0,0,1,10,5]
+  }
+]
+
+### Download PDF
+GET http://localhost:8787/api/pdf/doc-1
