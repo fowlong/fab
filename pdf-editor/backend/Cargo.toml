@@ -1,0 +1,25 @@
+[package]
+name = "pdf-editor-backend"
+version = "0.1.0"
+edition = "2021"
+authors = ["PDF Editor Contributors"]
+license = "Apache-2.0"
+description = "Axum-based backend for a Fabric.js driven PDF editor"
+
+[dependencies]
+anyhow = "1.0"
+axum = { version = "0.7", features = ["json", "multipart"] }
+base64 = "0.22"
+futures = "0.3"
+harfbuzz_rs = "2.0"
+lazy_static = "1.4"
+lopdf = "0.32"
+parking_lot = "0.12"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+tokio = { version = "1.37", features = ["macros", "rt-multi-thread", "fs"] }
+ttf-parser = "0.21"
+uuid = { version = "1.7", features = ["v4", "serde"] }
+bytes = "1.5"
+tower-http = { version = "0.5", features = ["cors", "trace"] }

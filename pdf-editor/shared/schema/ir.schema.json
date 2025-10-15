@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "IntermediateRepresentation",
+  "type": "object",
+  "properties": {
+    "pages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "index": { "type": "integer", "minimum": 0 },
+          "widthPt": { "type": "number" },
+          "heightPt": { "type": "number" },
+          "objects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "kind": {
+                  "type": "string",
+                  "enum": ["text", "image", "path"]
+                },
+                "bbox": {
+                  "type": "array",
+                  "items": { "type": "number" },
+                  "minItems": 4,
+                  "maxItems": 4
+                }
+              },
+              "required": ["id", "kind", "bbox"],
+              "additionalProperties": true
+            }
+          }
+        },
+        "required": ["index", "widthPt", "heightPt", "objects"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["pages"],
+  "additionalProperties": false
+}

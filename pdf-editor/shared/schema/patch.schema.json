@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PatchOperations",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "op": {
+        "type": "string",
+        "enum": ["transform", "editText", "setStyle"]
+      },
+      "target": {
+        "type": "object",
+        "properties": {
+          "page": { "type": "integer", "minimum": 0 },
+          "id": { "type": "string" }
+        },
+        "required": ["page", "id"],
+        "additionalProperties": false
+      }
+    },
+    "required": ["op", "target"],
+    "allOf": [
+      {
+        "if": { "properties": { "op": { "const": "transform" } } },
+        "then": {
+          "properties": {
+            "deltaMatrixPt": {
+              "type": "array",
+              "items": { "type": "number" },
+              "minItems": 6,
+              "maxItems": 6
+            },
+            "kind": {
+              "type": "string",
+              "enum": ["text", "image", "path"]
+            }
+          },
+          "required": ["deltaMatrixPt", "kind"]
+        }
+      },
+      {
+        "if": { "properties": { "op": { "const": "editText" } } },
+        "then": {
+          "properties": {
+            "text": { "type": "string" }
+          },
+          "required": ["text"]
+        }
+      },
+      {
+        "if": { "properties": { "op": { "const": "setStyle" } } },
+        "then": {
+          "properties": {
+            "style": { "type": "object" }
+          },
+          "required": ["style"]
+        }
+      }
+    ]
+  }
+}
