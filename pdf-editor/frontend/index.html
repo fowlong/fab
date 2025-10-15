@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PDF Editor</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="app-header">
+        <h1>PDF Editor MVP</h1>
+        <div class="toolbar" id="toolbar"></div>
+      </header>
+      <main class="app-main">
+        <aside class="thumbnail-pane" id="thumbnails"></aside>
+        <section class="editor-pane" id="editor"></section>
+      </main>
+      <footer class="app-footer">
+        <span id="status">Drop a PDF to get started.</span>
+        <button id="download">Download PDF</button>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,23 @@
+[package]
+name = "pdf-editor-backend"
+version = "0.1.0"
+edition = "2021"
+authors = ["PDF Editor Team"]
+license = "Apache-2.0"
+description = "Axum-based PDF editor backend"
+
+[dependencies]
+axum = { version = "0.6", features = ["multipart"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+thiserror = "1"
+anyhow = "1"
+lopdf = "0.31"
+harfbuzz_rs = "2"
+ttf-parser = "0.20"
+lazy_static = "1"
+parking_lot = "0.12"
+uuid = { version = "1", features = ["v4", "serde"] }
+bytes = "1"
+base64 = "0.21"
