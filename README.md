@@ -20,19 +20,20 @@ The codebase is licensed under Apache-2.0. All third-party dependencies are limi
 
 ## Current status
 
-The current commit provides initial scaffolding for the frontend and backend projects together with strongly typed interfaces for the IR and patch protocol. Full PDF parsing, shaping, and editing logic are stubbed but the core routes and client wiring are ready for incremental feature development.
+The Stage 2 milestone delivers an interactive transform MVP capable of opening a PDF, exposing a lightweight intermediate representation (IR) for page 0, and rewriting matrices for text runs and image XObjects. The backend performs incremental saves so the original bytes are preserved while the appended tail reflects the edits.
 
 ### Frontend
 
-* Vite configuration for a TypeScript entry point.
-* Shared utility modules for coordinate math, Fabric.js mapping helpers, and API bindings.
-* React-free vanilla TypeScript app that renders pdf.js canvases and a Fabric overlay placeholder.
+* Vite-powered TypeScript app compiled in strict mode.
+* `pdf.js` renders the page underlay while Fabric.js draws transparent controllers above each editable object.
+* Dragging, rotating, or scaling an overlay issues a transform patch whose delta matrix is converted from Fabric space into PDF space before hitting the backend.
 
 ### Backend
 
-* `cargo` workspace with Axum HTTP server skeleton.
-* Placeholder modules for PDF parsing, content tokenisation, patching, and font handling.
-* Data structures mirroring the JSON contracts shared with the frontend.
+* Axum service written in Rust 2021 edition with permissive dependency licences only.
+* Content stream tokeniser with unit tests that tracks BT…ET, text operators, cm, and Do instructions.
+* IR extraction for page 0 covering text runs and image XObjects with bounding boxes and base matrices.
+* Patch executor that left-multiplies matrices for text Tm operators or image cm operators, then emits an incremental trailer via `write.rs`.
 
 ## Getting started
 
@@ -49,7 +50,7 @@ npm install
 npm run dev
 ```
 
-The development server listens on <http://localhost:5173>. For now it renders placeholder canvases because the backend does not yet implement PDF parsing.
+The development server listens on <http://localhost:5173>. Uploading a document renders page 0 via `pdf.js`, overlays Fabric controllers for each text run and image XObject, and syncs transform patches with the backend in real time.
 
 ### Backend
 
@@ -58,13 +59,35 @@ cd backend
 cargo run
 ```
 
-The Axum server starts on <http://localhost:8787>. The `/api/open`, `/api/ir/:docId`, `/api/patch/:docId`, and `/api/pdf/:docId` routes are stubbed and return mock data.
+The Axum server starts on <http://localhost:8787>. The `/api/open`, `/api/ir/:docId`, `/api/patch/:docId`, and `/api/pdf/:docId` routes operate on real PDFs, caching parsed IR data and persisting incremental updates to `/tmp/fab/<docId>.pdf`.
 
 ## Roadmap
 
-* Implement real PDF parsing in `backend/src/pdf/extract.rs`.
-* Produce incremental updates for transform, text edit, and style patches.
-* Complete the Fabric overlay controller logic and inline text editing UX.
-* Add automated end-to-end tests in `/e2e` that exercise representative editing scenarios.
+Stage 3 will broaden the editor beyond the transform MVP:
+
+* Extend IR extraction and caching across all pages with lazy loading.
+* Support editing additional object kinds (paths, annotations) and inline text content changes.
+* Provide richer UX affordances such as keyboard nudging, snapping, and selection outlines.
+* Add automated end-to-end tests in `/e2e` that cover representative editing scenarios.
 
 Contributions are welcome via pull requests.
+
+## Stage 2
+
+Follow the steps below to exercise the transform MVP:
+
+1. Start the backend service:
+   ```bash
+   cd backend
+   cargo run
+   ```
+   If `cargo` cannot fetch crates because of a proxy returning 403, retry once the network permits. The project has no custom build scripts.
+2. Launch the frontend development server:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+3. Visit <http://localhost:5173>, upload a one-page PDF that contains text and an image, and wait for the IR overlay to appear.
+4. Drag the text controller roughly 50 px to the right and 20 px downward, rotate by ~10°, and scale to ~110%. Repeat the interaction on the image controller.
+5. Download the updated PDF and inspect the `Tm` or `cm` operators in the content stream—each should be updated rather than duplicated, and the incremental trailer should be visible at the end of the file.
