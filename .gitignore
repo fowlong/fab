@@ -1,0 +1,10 @@
+# Node
+frontend/node_modules
+frontend/dist
+
+# Rust
+backend/target
+
+# Misc
+.DS_Store
+.tmp

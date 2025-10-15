@@ -1,0 +1,21 @@
+[package]
+name = "backend"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = { version = "0.7", features = ["json"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "1"
+anyhow = "1"
+lopdf = "0.32"
+harfbuzz = { version = "2", package = "harfbuzz" }
+ttf-parser = "0.20"
+lazy_static = "1"
+parking_lot = "0.12"
+base64 = "0.22"
+bytes = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
