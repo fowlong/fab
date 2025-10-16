@@ -1,0 +1,19 @@
+[
+  {
+    "op": "transform",
+    "target": { "page": 0, "id": "t:42" },
+    "kind": "text",
+    "deltaMatrixPt": [1.0, 0.0, 0.0, 1.0, 5.0, -5.0]
+  },
+  {
+    "op": "editText",
+    "target": { "page": 0, "id": "t:42" },
+    "text": "Updated text",
+    "fontPref": { "preferExisting": true }
+  },
+  {
+    "op": "setStyle",
+    "target": { "page": 0, "id": "img:9" },
+    "style": { "fillColor": [1.0, 0.0, 0.0], "opacityFill": 0.5 }
+  }
+]
