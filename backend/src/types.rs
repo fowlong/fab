@@ -209,3 +209,192 @@ impl DocumentIR {
         }
     }
 }
+
+#[cfg(test)]
+mod schema_tests {
+    use super::*;
+    use serde_json::Value;
+
+    fn resolve_ref<'a>(root: &'a Value, reference: &str) -> Option<&'a Value> {
+        let trimmed = reference.strip_prefix("#/")?;
+        let mut current = root;
+        for part in trimmed.split('/') {
+            current = current.get(part)?;
+        }
+        Some(current)
+    }
+
+    fn collect_errors(schema: &Value, instance: &Value, root: &Value, path: &str) -> Vec<String> {
+        let mut errors = Vec::new();
+        validate(schema, instance, root, path, &mut errors);
+        errors
+    }
+
+    fn validate(
+        schema: &Value,
+        instance: &Value,
+        root: &Value,
+        path: &str,
+        errors: &mut Vec<String>,
+    ) {
+        if let Some(reference) = schema.get("$ref").and_then(Value::as_str) {
+            if let Some(target) = resolve_ref(root, reference) {
+                validate(target, instance, root, path, errors);
+            } else {
+                errors.push(format!("{path}: unresolved reference {reference}"));
+            }
+            return;
+        }
+
+        if let Some(candidates) = schema.get("oneOf").and_then(Value::as_array) {
+            if candidates
+                .iter()
+                .any(|candidate| collect_errors(candidate, instance, root, path).is_empty())
+            {
+                return;
+            }
+            errors.push(format!("{path}: did not match any schema in oneOf"));
+            return;
+        }
+
+        if let Some(expected_type) = schema.get("type").and_then(Value::as_str) {
+            let type_matches = match expected_type {
+                "object" => instance.is_object(),
+                "array" => instance.is_array(),
+                "string" => instance.is_string(),
+                "number" => instance.is_number(),
+                "integer" => instance.as_i64().is_some(),
+                "boolean" => instance.is_boolean(),
+                _ => true,
+            };
+            if !type_matches {
+                errors.push(format!("{path}: expected type {expected_type}"));
+                return;
+            }
+        }
+
+        if let Some(expected) = schema.get("const") {
+            if instance != expected {
+                errors.push(format!("{path}: expected constant {expected}"));
+            }
+        }
+
+        if let Some(enum_values) = schema.get("enum").and_then(Value::as_array) {
+            if !enum_values.iter().any(|value| value == instance) {
+                errors.push(format!("{path}: value not in enum"));
+            }
+        }
+
+        if let Some(array) = instance.as_array() {
+            if let Some(min_items) = schema.get("minItems").and_then(Value::as_u64) {
+                if array.len() < min_items as usize {
+                    errors.push(format!("{path}: expected at least {min_items} items"));
+                }
+            }
+            if let Some(max_items) = schema.get("maxItems").and_then(Value::as_u64) {
+                if array.len() > max_items as usize {
+                    errors.push(format!("{path}: expected at most {max_items} items"));
+                }
+            }
+            if let Some(items_schema) = schema.get("items") {
+                for (index, item) in array.iter().enumerate() {
+                    let item_path = format!("{path}/{index}");
+                    validate(items_schema, item, root, &item_path, errors);
+                }
+            }
+        }
+
+        if let Some(number) = instance.as_f64() {
+            if let Some(minimum) = schema.get("minimum").and_then(Value::as_f64) {
+                if number < minimum {
+                    errors.push(format!("{path}: value below minimum {minimum}"));
+                }
+            }
+            if let Some(maximum) = schema.get("maximum").and_then(Value::as_f64) {
+                if number > maximum {
+                    errors.push(format!("{path}: value above maximum {maximum}"));
+                }
+            }
+        }
+
+        if let Some(object) = instance.as_object() {
+            if let Some(required) = schema.get("required").and_then(Value::as_array) {
+                for key in required.iter().filter_map(Value::as_str) {
+                    if !object.contains_key(key) {
+                        errors.push(format!("{path}/{key}: missing required property"));
+                    }
+                }
+            }
+
+            if matches!(
+                schema.get("additionalProperties").and_then(Value::as_bool),
+                Some(false)
+            ) {
+                let allowed: std::collections::HashSet<_> = schema
+                    .get("properties")
+                    .and_then(Value::as_object)
+                    .map(|map| map.keys().cloned().collect())
+                    .unwrap_or_default();
+                for key in object.keys() {
+                    if !allowed.contains(key) {
+                        errors.push(format!(
+                            "{path}/{key}: additional properties are not allowed"
+                        ));
+                    }
+                }
+            }
+
+            if let Some(properties) = schema.get("properties").and_then(Value::as_object) {
+                for (key, value) in object {
+                    if let Some(property_schema) = properties.get(key) {
+                        let property_path = format!("{path}/{key}");
+                        validate(property_schema, value, root, &property_path, errors);
+                    }
+                }
+            }
+        }
+    }
+
+    fn validate_schema(contents: &str, instance: &Value) -> Vec<String> {
+        let schema: Value = serde_json::from_str(contents).expect("valid schema json");
+        collect_errors(&schema, instance, &schema, "#")
+    }
+
+    #[test]
+    fn document_ir_sample_matches_schema() {
+        let instance = serde_json::to_value(DocumentIR::sample()).expect("serialise IR");
+        let errors = validate_schema(
+            include_str!("../../shared/schema/ir.schema.json"),
+            &instance,
+        );
+        assert!(errors.is_empty(), "schema validation failed: {errors:?}");
+    }
+
+    #[test]
+    fn patch_operations_match_schema() {
+        let ops = vec![PatchOperation::Transform {
+            target: PatchTarget {
+                page: 0,
+                id: "t:42".into(),
+            },
+            delta_matrix_pt: [1.0, 0.0, 0.0, 1.0, 2.5, -3.0],
+            kind: "text".into(),
+        }];
+        let instance = serde_json::to_value(&ops).expect("serialise patch ops");
+        let errors = validate_schema(
+            include_str!("../../shared/schema/patch.schema.json"),
+            &instance,
+        );
+        assert!(errors.is_empty(), "schema validation failed: {errors:?}");
+    }
+
+    #[test]
+    fn patch_schema_rejects_invalid_payload() {
+        let invalid = serde_json::json!([{ "op": "transform", "target": { "page": 0 } }]);
+        let errors = validate_schema(
+            include_str!("../../shared/schema/patch.schema.json"),
+            &invalid,
+        );
+        assert!(!errors.is_empty());
+    }
+}

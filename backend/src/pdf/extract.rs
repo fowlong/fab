@@ -20,4 +20,21 @@ mod tests {
         let ir = extract_ir(bytes).expect("extracting IR should succeed");
         assert_eq!(ir, DocumentIR::sample());
     }
+
+    #[test]
+    fn extract_ir_sample_contains_text_and_image() {
+        let bytes = include_bytes!("../../../e2e/sample.pdf");
+        let ir = extract_ir(bytes).expect("extracting IR should succeed");
+
+        let page = ir.pages.first().expect("sample IR has a page");
+        assert_eq!(page.index, 0);
+        assert!(page
+            .objects
+            .iter()
+            .any(|object| matches!(object, crate::types::PageObject::Text(_))));
+        assert!(page
+            .objects
+            .iter()
+            .any(|object| matches!(object, crate::types::PageObject::Image(_))));
+    }
 }

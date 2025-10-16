@@ -14,6 +14,7 @@ const mockMap = new Map([
   ['fabric', path.resolve('tests/mocks/fabric.ts')],
   ['pdfjs-dist', path.resolve('tests/mocks/pdfjs-dist.ts')],
   ['pdfjs-dist/build/pdf.worker?url', path.resolve('tests/mocks/pdfjs-dist/build/pdf.worker?url.ts')],
+  ['vitest', path.resolve('tests/vitest-shim.mjs')],
 ]);
 
 export async function resolve(specifier, context, defaultResolve) {
