@@ -20,19 +20,22 @@ The codebase is licensed under Apache-2.0. All third-party dependencies are limi
 
 ## Current status
 
-The current commit provides initial scaffolding for the frontend and backend projects together with strongly typed interfaces for the IR and patch protocol. Full PDF parsing, shaping, and editing logic are stubbed but the core routes and client wiring are ready for incremental feature development.
+The Stage&nbsp;2 milestone implements a true PDF rewrite loop for page&nbsp;0 text runs and image XObjects. The backend now parses the page content stream, exposes a structured intermediate representation, and applies transform patches by left-multiplying the `Tm`/`cm` matrices before writing an incremental update. The frontend renders the live PDF with `pdf.js`, overlays Fabric.js controllers, and posts transform patches whenever the user drags, rotates, or scales a handle.
 
 ### Frontend
 
-* Vite configuration for a TypeScript entry point.
-* Shared utility modules for coordinate math, Fabric.js mapping helpers, and API bindings.
-* React-free vanilla TypeScript app that renders pdf.js canvases and a Fabric overlay placeholder.
+* Vite + strict TypeScript application without a framework runtime.
+* `pdf.js` underlay that renders page&nbsp;0 into a bitmap canvas.
+* Fabric.js overlay that exposes draggable controllers for text runs and images; controller movement is converted back into PDF point-space matrices via `coords.ts`.
+* API client for `/api/open`, `/api/ir`, `/api/patch`, and `/api/pdf` endpoints plus download helper.
 
 ### Backend
 
-* `cargo` workspace with Axum HTTP server skeleton.
-* Placeholder modules for PDF parsing, content tokenisation, patching, and font handling.
-* Data structures mirroring the JSON contracts shared with the frontend.
+* Axum 0.7 server with CORS configured for <http://localhost:5173>.
+* `pdf::content` tokenizer with byte-span tracking (unit-tested for `cm`, `BT/ET`, `Tj/TJ`, and `Do`).
+* `pdf::extract` IR builder that resolves page&nbsp;0 streams, graphics state, text state, and image placements.
+* `pdf::patch` transform logic that rewrites `Tm`/`cm` tokens, splices updated bytes, and uses `pdf::write` to emit an incremental update via `lopdf::IncrementalDocument`.
+* In-memory document store backed by `/tmp/fab/<docId>.pdf` snapshots.
 
 ## Getting started
 
@@ -49,7 +52,7 @@ npm install
 npm run dev
 ```
 
-The development server listens on <http://localhost:5173>. For now it renders placeholder canvases because the backend does not yet implement PDF parsing.
+Visit <http://localhost:5173>, choose a PDF with a text run and an image on page&nbsp;0, and the app will render the page with draggable controllers.
 
 ### Backend
 
@@ -58,7 +61,22 @@ cd backend
 cargo run
 ```
 
-The Axum server starts on <http://localhost:8787>. The `/api/open`, `/api/ir/:docId`, `/api/patch/:docId`, and `/api/pdf/:docId` routes are stubbed and return mock data.
+The service listens on <http://localhost:8787>. The frontend uploads PDFs through `/api/open`, queries `/api/ir/:docId` for the structured representation, posts transform patches to `/api/patch/:docId`, and downloads the incrementally updated file via `/api/pdf/:docId`.
+
+### Stage&nbsp;2 verification steps
+
+1. Start the backend (`cargo run`) and frontend (`npm run dev`).
+2. Load a one-page PDF that contains at least one text run within a `BT…ET` block and one image XObject.
+3. Drag a text controller ~50&nbsp;px right and 20&nbsp;px down, rotate it slightly, and release. The backend updates the `Tm` entry and the viewer re-renders the page.
+4. Repeat for the image controller to confirm the surrounding `cm` operator is rewritten.
+5. Use the “Download current PDF” button to fetch the incrementally saved PDF. Inspect the content stream to verify a single updated `Tm`/`cm` and no duplicate drawings.
+
+All third-party dependencies remain under permissive licences.
+
+### Troubleshooting
+
+* `cargo test` currently fails in the default sandbox because outbound HTTPS proxying to crates.io returns HTTP 403. Re-run once network access is restored or use a cached registry mirror.
+* `npm run build` may print `sh: 1: vite: Permission denied` when the bundled Windows binary lands without the executable bit. Reinstall dependencies on Linux (`rm -rf node_modules && npm install`) or invoke `npx vite build` to use the platform-specific shim.
 
 ## Development environment
 
