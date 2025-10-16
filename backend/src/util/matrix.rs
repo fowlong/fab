@@ -32,6 +32,45 @@ impl Matrix2D {
             f: self.b * other.e + self.d * other.f + self.f,
         }
     }
+
+    pub fn from_array(values: [f64; 6]) -> Self {
+        Self {
+            a: values[0],
+            b: values[1],
+            c: values[2],
+            d: values[3],
+            e: values[4],
+            f: values[5],
+        }
+    }
+
+    pub fn to_array(self) -> [f64; 6] {
+        [self.a, self.b, self.c, self.d, self.e, self.f]
+    }
+
+    pub fn concat(transforms: &[Self]) -> Self {
+        transforms
+            .iter()
+            .copied()
+            .fold(Self::identity(), |acc, item| acc.multiply(item))
+    }
+
+    pub fn inverse(self) -> Option<Self> {
+        let det = self.a * self.d - self.b * self.c;
+        if det.abs() < f64::EPSILON {
+            return None;
+        }
+
+        let inv_det = 1.0 / det;
+        Some(Self {
+            a: self.d * inv_det,
+            b: -self.b * inv_det,
+            c: -self.c * inv_det,
+            d: self.a * inv_det,
+            e: (self.c * self.f - self.d * self.e) * inv_det,
+            f: (self.b * self.e - self.a * self.f) * inv_det,
+        })
+    }
 }
 
 #[cfg(test)]
@@ -78,5 +117,37 @@ mod tests {
         assert_eq!(combined.d, 2.0);
         assert_eq!(combined.e, 20.0);
         assert_eq!(combined.f, -10.0);
+    }
+
+    #[test]
+    fn concat_applies_matrices_in_sequence() {
+        let translate = Matrix2D::from_array([1.0, 0.0, 0.0, 1.0, 5.0, -3.0]);
+        let scale = Matrix2D::from_array([2.0, 0.0, 0.0, 0.5, 0.0, 0.0]);
+        let rotate = Matrix2D::from_array([0.0, 1.0, -1.0, 0.0, 0.0, 0.0]);
+
+        let combined = Matrix2D::concat(&[translate, scale, rotate]);
+        let manual = translate.multiply(scale).multiply(rotate);
+
+        assert_eq!(combined, manual);
+    }
+
+    #[test]
+    fn inverse_reverts_affine_transform() {
+        let transform = Matrix2D::from_array([1.2, 0.3, -0.4, 0.9, 5.0, -7.5]);
+        let inverse = transform.inverse().expect("matrix should be invertible");
+
+        let identity = transform.multiply(inverse);
+        assert!((identity.a - 1.0).abs() < 1e-9);
+        assert!((identity.d - 1.0).abs() < 1e-9);
+        assert!(identity.b.abs() < 1e-9);
+        assert!(identity.c.abs() < 1e-9);
+        assert!(identity.e.abs() < 1e-9);
+        assert!(identity.f.abs() < 1e-9);
+    }
+
+    #[test]
+    fn inverse_returns_none_for_singular_matrix() {
+        let transform = Matrix2D::from_array([1.0, 2.0, 2.0, 4.0, 0.0, 0.0]);
+        assert!(transform.inverse().is_none());
     }
 }

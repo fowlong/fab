@@ -1,0 +1,35 @@
+import type { DocumentIR } from '../../src/types';
+
+export const sampleIr: DocumentIR = {
+  pages: [
+    {
+      index: 0,
+      widthPt: 595.276,
+      heightPt: 841.89,
+      objects: [
+        {
+          id: 't:42',
+          kind: 'text',
+          pdfRef: { obj: 187, gen: 0 },
+          btSpan: { start: 12034, end: 12345, streamObj: 155 },
+          Tm: [1, 0, 0, 1, 100.2, 700.5],
+          font: { resName: 'F2', size: 10.5, type: 'Type0' },
+          unicode: 'Invoice #01234',
+          glyphs: [
+            { gid: 123, dx: 500, dy: 0 },
+            { gid: 87, dx: 480, dy: 0 },
+          ],
+          bbox: [98.4, 688.0, 210.0, 705.0],
+        },
+        {
+          id: 'img:9',
+          kind: 'image',
+          pdfRef: { obj: 200, gen: 0 },
+          xObject: 'Im7',
+          cm: [120, 0, 0, 90, 300.0, 500.0],
+          bbox: [300.0, 500.0, 420.0, 590.0],
+        },
+      ],
+    },
+  ],
+};

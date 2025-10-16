@@ -7,14 +7,17 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "NODE_PATH=tests/mocks node --loader ./tests/loader.mjs --test tests/**/*.test.ts"
+    "test": "NODE_PATH=tests/vendor:tests/mocks node ./tests/run-vitest.mjs"
   },
   "dependencies": {
     "fabric": "^6.0.0-beta.20",
     "pdfjs-dist": "^4.2.67"
   },
   "devDependencies": {
+    "@types/node": "^20.11.0",
+    "ajv": "^8.12.0",
     "typescript": "^5.4.0",
-    "vite": "^5.0.0"
+    "vite": "^5.0.0",
+    "vitest": "^1.5.0"
   }
 }
