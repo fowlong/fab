@@ -20,19 +20,24 @@ The codebase is licensed under Apache-2.0. All third-party dependencies are limi
 
 ## Current status
 
-The current commit provides initial scaffolding for the frontend and backend projects together with strongly typed interfaces for the IR and patch protocol. Full PDF parsing, shaping, and editing logic are stubbed but the core routes and client wiring are ready for incremental feature development.
+Stage 2 introduces a functioning end-to-end slice:
+
+* The backend accepts real PDFs, parses page 0 streams, exposes a text/image IR, applies transform patches, and emits incremental updates without rewriting the original bytes.
+* The frontend renders the updated PDF via pdf.js, draws Fabric controllers aligned to the IR, and pushes transform deltas back to the backend whenever the user drags, rotates, or scales an overlay.
+* Text runs gain a synthetic `Tm` matrix when needed so follow-up transforms always work against an explicit matrix.
 
 ### Frontend
 
-* Vite configuration for a TypeScript entry point.
-* Shared utility modules for coordinate math, Fabric.js mapping helpers, and API bindings.
-* React-free vanilla TypeScript app that renders pdf.js canvases and a Fabric overlay placeholder.
+* Vanilla TypeScript + Vite bundle that targets the Axum backend running on <http://localhost:8787> (CORS enabled for the Vite dev server on port 5173).
+* `pdfPreview.ts` renders page 0 via pdf.js and exposes page dimensions for the overlay coordinate transforms.
+* `fabricOverlay.ts` builds Fabric controllers for text runs and image XObjects, converts Fabric matrices into PDF-space deltas, and calls the backend with a single `transform` patch.
 
 ### Backend
 
-* `cargo` workspace with Axum HTTP server skeleton.
-* Placeholder modules for PDF parsing, content tokenisation, patching, and font handling.
-* Data structures mirroring the JSON contracts shared with the frontend.
+* Axum 0.7 server with multipart and base64 JSON upload support at `POST /api/open`.
+* `GET /api/ir/:docId` returns the parsed IR for page 0 (text + image objects only).
+* `POST /api/patch/:docId` applies transform patches by rewriting either the `Tm` in a BT…ET span or the closest `cm` before a `Do` call, writing a new content stream via an incremental update, and returning a data-URL of the updated PDF.
+* `GET /api/pdf/:docId` streams the latest bytes from `/tmp/fab/<docId>.pdf`.
 
 ## Getting started
 
@@ -49,7 +54,7 @@ npm install
 npm run dev
 ```
 
-The development server listens on <http://localhost:5173>. For now it renders placeholder canvases because the backend does not yet implement PDF parsing.
+Open <http://localhost:5173> in the browser. The app connects to the Axum backend via CORS and lets you upload a PDF, manipulate overlays, and download the rewritten file.
 
 ### Backend
 
@@ -58,7 +63,16 @@ cd backend
 cargo run
 ```
 
-The Axum server starts on <http://localhost:8787>. The `/api/open`, `/api/ir/:docId`, `/api/patch/:docId`, and `/api/pdf/:docId` routes are stubbed and return mock data.
+The server listens on <http://localhost:8787> and persists uploaded PDFs to `/tmp/fab/<docId>.pdf`. Incremental updates append to the original bytes, so inspecting the tail of the file reveals the new stream and xref subsection.
+
+### Stage 2 manual test
+
+1. Start the backend (`cargo run`) and the frontend dev server (`npm run dev` inside `frontend`).
+2. Load a one-page PDF containing text and at least one image.
+3. Drag a text overlay ~50px to the right and ~20px down, rotate by ~10°, and scale by roughly 1.1×.
+4. Click the download button and inspect the PDF: the text should appear in the new position/orientation and the BT…ET block must contain a single updated `Tm` command (inserted if it was missing previously).
+5. Drag/rotate/scale the image overlay. Download again and confirm the image moves while the XObject resource stays untouched (only the nearest `cm` changes).
+6. Ensure the downloaded PDF size only increases modestly (incremental update at the tail) and that the backend log reports successful patch application.
 
 ## Development environment
 
