@@ -98,17 +98,23 @@ body {
   inset: 0;
 }
 
+.pdf-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.pdf-underlay {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
 .fabric-page-overlay {
   position: absolute;
   inset: 0;
 }
 
 .page-wrapper__overlay canvas {
-  display: block;
-}
-
-.pdf-page-canvas {
-  width: 100%;
-  height: auto;
   display: block;
 }

@@ -20,19 +20,7 @@ The codebase is licensed under Apache-2.0. All third-party dependencies are limi
 
 ## Current status
 
-The current commit provides initial scaffolding for the frontend and backend projects together with strongly typed interfaces for the IR and patch protocol. Full PDF parsing, shaping, and editing logic are stubbed but the core routes and client wiring are ready for incremental feature development.
-
-### Frontend
-
-* Vite configuration for a TypeScript entry point.
-* Shared utility modules for coordinate math, Fabric.js mapping helpers, and API bindings.
-* React-free vanilla TypeScript app that renders pdf.js canvases and a Fabric overlay placeholder.
-
-### Backend
-
-* `cargo` workspace with Axum HTTP server skeleton.
-* Placeholder modules for PDF parsing, content tokenisation, patching, and font handling.
-* Data structures mirroring the JSON contracts shared with the frontend.
+Stage 2 of the editor delivers a working transform pipeline for the first page of a PDF. The backend parses the document with `lopdf`, extracts an intermediate representation for text runs and image XObjects, and applies `transform` patch operations by rewriting the page’s content stream in an incremental update. The frontend renders the page bitmap via `pdf.js`, overlays Fabric.js controllers for each selectable object, and translates user-driven drag/rotate/scale gestures into PDF-space matrices.
 
 ## Getting started
 
@@ -49,7 +37,7 @@ npm install
 npm run dev
 ```
 
-The development server listens on <http://localhost:5173>. For now it renders placeholder canvases because the backend does not yet implement PDF parsing.
+The development server listens on <http://localhost:5173>.
 
 ### Backend
 
@@ -58,7 +46,15 @@ cd backend
 cargo run
 ```
 
-The Axum server starts on <http://localhost:8787>. The `/api/open`, `/api/ir/:docId`, `/api/patch/:docId`, and `/api/pdf/:docId` routes are stubbed and return mock data.
+The Axum server starts on <http://localhost:8787> with CORS enabled for <http://localhost:5173>.
+
+### Stage 2 manual test flow
+
+1. Start the backend (`cargo run` in `backend/`).
+2. Start the frontend dev server (`npm run dev` in `frontend/`).
+3. Visit <http://localhost:5173>, select a single-page PDF that contains at least one text run and one image.
+4. Drag, rotate, or scale one of the blue controllers. The frontend patches page 0 with a `transform` operation, the backend rewrites the relevant `Tm` or `cm` operator, and the updated PDF is re-rendered in-place.
+5. Use the “Download updated PDF” button to save the incrementally updated document. Inspect the content stream to confirm that the original placement matrix has been pre-multiplied by the delta.
 
 ## Development environment
 
@@ -73,9 +69,8 @@ Open the repository in the provided [Development Container](https://containers.d
 
 ## Roadmap
 
-* Implement real PDF parsing in `backend/src/pdf/extract.rs`.
-* Produce incremental updates for transform, text edit, and style patches.
-* Complete the Fabric overlay controller logic and inline text editing UX.
+* Extend extraction and patching to additional operator types and multi-page documents.
+* Implement text editing and style patch operations.
 * Add automated end-to-end tests in `/e2e` that exercise representative editing scenarios.
 
 Contributions are welcome via pull requests.
