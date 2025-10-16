@@ -1,79 +1,152 @@
-// src/fabricOverlay.ts
+import { Canvas, Rect } from 'fabric';
 
-// Robust import that works across Fabric v4/v5 and different bundlers
-import * as FabricNS from 'fabric';
-const fabric: any =
-  (FabricNS as any).fabric ?? // UMD-style { fabric }
-  (FabricNS as any).default ?? // default export carrying the namespace
-  (FabricNS as any); // namespace exports (Canvas, Rect, etc. on the root)
+import type { Matrix, DocumentIR, PageObject } from './types';
+import { fabricDeltaToPdfDelta, ptMatrixToFabric, S } from './coords';
+import { patch } from './api';
 
-import type { DocumentIR, PageIR, PageObject } from './types';
-import { createFabricPlaceholder } from './mapping';
-
-type OverlayEntry = {
-  // Use `any` to avoid TS complaining about types across the various export shapes
-  canvas: any;
-  element: HTMLCanvasElement;
+export type OverlayCallbacks = {
+  onUpdatedPdf?: (dataUrl?: string) => void;
+  onError?: (message: string) => void;
+  onInfo?: (message: string) => void;
 };
 
-export class FabricOverlayManager {
-  private overlays = new Map<number, OverlayEntry>();
+const DEFAULT_STROKE = 'rgba(41,128,185,0.7)';
+const DEFAULT_FILL = 'rgba(41,128,185,0.08)';
 
-  reset() {
-    for (const entry of this.overlays.values()) {
-      entry.canvas.dispose();
-      entry.element.remove();
-    }
-    this.overlays.clear();
+export class FabricOverlay {
+  private canvas: Canvas | null = null;
+  private docId: string | null = null;
+  private pageHeightPt = 0;
+  private callbacks: OverlayCallbacks;
+
+  constructor(callbacks: OverlayCallbacks = {}) {
+    this.callbacks = callbacks;
   }
 
-  mountOverlay(
-    page: PageIR,
-    wrapper: HTMLElement,
-    size: { width: number; height: number },
-  ) {
-    const existing = this.overlays.get(page.index);
-    if (existing) {
-      existing.canvas.dispose();
-      existing.element.remove();
+  dispose() {
+    if (this.canvas) {
+      this.canvas.dispose();
+      this.canvas = null;
     }
-
-    const canvasEl = document.createElement('canvas');
-    canvasEl.width = size.width;
-    canvasEl.height = size.height;
-    canvasEl.style.width = `${size.width}px`;
-    canvasEl.style.height = `${size.height}px`;
-    canvasEl.className = 'fabric-page-overlay';
-    wrapper.appendChild(canvasEl);
-
-    const canvas = new fabric.Canvas(canvasEl, {
-      selection: true,
-    });
-
-    this.overlays.set(page.index, { canvas, element: canvasEl });
-    return canvas;
+    this.docId = null;
   }
 
-  populate(
+  mount(
+    element: HTMLCanvasElement,
+    sizePx: { width: number; height: number },
+    docId: string,
+    pageHeightPt: number,
     ir: DocumentIR,
-    wrappers: HTMLElement[],
-    pageSizes: Array<{ width: number; height: number }>,
   ) {
-    this.reset();
+    this.dispose();
+    this.docId = docId;
+    this.pageHeightPt = pageHeightPt;
 
-    ir.pages.forEach((page) => {
-      const wrapper = wrappers[page.index];
-      const size = pageSizes[page.index];
-      if (!wrapper || !size) return;
+    element.width = sizePx.width;
+    element.height = sizePx.height;
+    element.style.width = `${sizePx.width}px`;
+    element.style.height = `${sizePx.height}px`;
 
-      const canvas = this.mountOverlay(page, wrapper, size);
-      page.objects.forEach((obj) => this.addPlaceholder(canvas, page, obj));
-      canvas.renderAll();
+    this.canvas = new Canvas(element, { selection: true });
+    this.canvas.on('object:modified', (event: any) => {
+      if (!event.target) return;
+      this.handleModified(event.target).catch((err) => {
+        this.callbacks.onError?.(String(err));
+      });
     });
+
+    const page = ir.pages.find((p) => p.index === 0);
+    if (!page) {
+      return;
+    }
+    page.objects.forEach((object) => this.addController(object));
+    this.canvas.renderAll();
   }
 
-  private addPlaceholder(canvas: any, page: PageIR, obj: PageObject) {
-    const placeholder = createFabricPlaceholder(canvas, page, obj);
-    canvas.add(placeholder);
+  private addController(obj: PageObject) {
+    if (!this.canvas || !this.docId) {
+      return;
+    }
+    const { widthPt, heightPt } = getBoxSize(obj);
+    const widthPx = widthPt / S;
+    const heightPx = heightPt / S;
+    const rect = new Rect({
+      width: widthPx,
+      height: heightPx,
+      fill: DEFAULT_FILL,
+      stroke: DEFAULT_STROKE,
+      strokeWidth: 1,
+      transparentCorners: false,
+      cornerColor: '#2980b9',
+      lockScalingFlip: true,
+      originX: 'left',
+      originY: 'top',
+      selectable: true,
+    });
+
+    const pdfMatrix = getMatrix(obj);
+    const fabricMatrix = ptMatrixToFabric(pdfMatrix, this.pageHeightPt);
+    rect.set('transformMatrix', fabricMatrix);
+    rect.set('data', {
+      id: obj.id,
+      kind: obj.kind,
+      page: 0,
+      F0: fabricMatrix,
+    });
+    rect.set('hoverCursor', 'move');
+    rect.set('strokeUniform', true);
+
+    this.canvas.add(rect);
   }
+
+  private async handleModified(target: any) {
+    if (!this.canvas || !this.docId) {
+      return;
+    }
+    const meta = target.data as { id: string; kind: 'text' | 'image'; page: number; F0: Matrix } | undefined;
+    if (!meta) {
+      return;
+    }
+    const Fnew: Matrix = target.calcTransformMatrix();
+    try {
+      const delta = fabricDeltaToPdfDelta(meta.F0, Fnew, this.pageHeightPt);
+      const response = await patch(this.docId, [
+        {
+          op: 'transform',
+          target: { page: meta.page, id: meta.id },
+          deltaMatrixPt: delta,
+          kind: meta.kind,
+        },
+      ]);
+      if (!response.ok) {
+        throw new Error('Patch rejected by backend');
+      }
+      meta.F0 = Fnew;
+      target.set('data', meta);
+      target.setCoords();
+      this.canvas.renderAll();
+      if (response.updatedPdf) {
+        this.callbacks.onUpdatedPdf?.(response.updatedPdf);
+      } else {
+        this.callbacks.onInfo?.('Updated PDF ready.');
+      }
+    } catch (error) {
+      target.set('transformMatrix', meta.F0);
+      target.setCoords();
+      this.canvas.renderAll();
+      throw error;
+    }
+  }
+}
+
+function getMatrix(obj: PageObject): Matrix {
+  if (obj.kind === 'text') {
+    return obj.Tm;
+  }
+  return obj.cm;
+}
+
+function getBoxSize(obj: PageObject): { widthPt: number; heightPt: number } {
+  const [x0, y0, x1, y1] = obj.bbox;
+  return { widthPt: Math.max(1, x1 - x0), heightPt: Math.max(1, y1 - y0) };
 }
