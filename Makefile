@@ -19,8 +19,8 @@ web\:dev:
 
 test:
 > cargo test --manifest-path backend/Cargo.toml
-> cd frontend && npm run build
+> cd frontend && npm run test
 
 golden:
 > cargo test --manifest-path backend/Cargo.toml -- --ignored
-> cd frontend && npm run build
+> cd frontend && npm run test

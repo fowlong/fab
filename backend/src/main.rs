@@ -49,8 +49,7 @@ struct OpenResponse {
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::registry()
         .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "info".into()),
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
@@ -125,10 +124,7 @@ async fn apply_patch(
     pdf::patch::apply_patches(&mut ir, &ops)?; // stubbed in MVP
     entry.ir = ir;
 
-    let encoded = format!(
-        "data:application/pdf;base64,{}",
-        BASE64.encode(&entry.pdf)
-    );
+    let encoded = format!("data:application/pdf;base64,{}", BASE64.encode(&entry.pdf));
 
     Ok(Json(PatchResponse {
         ok: true,
@@ -187,11 +183,194 @@ fn new_doc_id() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::{PatchTarget, StylePayload};
+    use axum::{
+        body::{to_bytes, Body},
+        http::{header, Request, StatusCode},
+        routing::{get, post},
+        Router,
+    };
+    use tower::util::ServiceExt;
 
     #[test]
     fn sample_ir_contains_objects() {
         let ir = DocumentIR::sample();
         assert_eq!(ir.pages.len(), 1);
         assert_eq!(ir.pages[0].objects.len(), 2);
+    }
+
+    #[test]
+    fn new_doc_id_increments_with_zero_padding() {
+        NEXT_ID.store(1, Ordering::Relaxed);
+        let first = new_doc_id();
+        let second = new_doc_id();
+
+        assert_eq!(first, "doc-0001");
+        assert_eq!(second, "doc-0002");
+    }
+
+    fn test_router(state: AppState) -> Router {
+        Router::new()
+            .route("/api/ir/:doc_id", get(get_ir))
+            .route("/api/patch/:doc_id", post(apply_patch))
+            .route("/api/pdf/:doc_id", get(download_pdf))
+            .with_state(state)
+    }
+
+    async fn seed_state_with_sample(doc_id: &str, pdf: Vec<u8>) -> AppState {
+        let state = AppState::default();
+        {
+            let mut store = state.store.write().await;
+            store.insert(
+                doc_id.to_string(),
+                DocumentEntry {
+                    ir: DocumentIR::sample(),
+                    pdf,
+                },
+            );
+        }
+        state
+    }
+
+    #[tokio::test]
+    async fn get_ir_endpoint_returns_serialised_ir() {
+        let doc_id = "doc-9001";
+        let state = seed_state_with_sample(doc_id, SAMPLE_PDF.to_vec()).await;
+        let app = test_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("GET")
+                    .uri(format!("/api/ir/{doc_id}"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let ir: DocumentIR = serde_json::from_slice(&body).unwrap();
+        assert_eq!(ir, DocumentIR::sample());
+    }
+
+    #[tokio::test]
+    async fn get_ir_endpoint_returns_not_found_for_unknown_document() {
+        let app = test_router(AppState::default());
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("GET")
+                    .uri("/api/ir/missing")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn apply_patch_endpoint_returns_base64_pdf() {
+        let doc_id = "doc-4242";
+        let pdf_bytes = b"%PDF-1.4 test".to_vec();
+        let state = seed_state_with_sample(doc_id, pdf_bytes.clone()).await;
+        let app_state = state.clone();
+        let app = test_router(state);
+
+        let ops = vec![PatchOperation::SetStyle {
+            target: PatchTarget {
+                page: 0,
+                id: "t:42".into(),
+            },
+            style: StylePayload {
+                fill_color: Some([1.0, 0.0, 0.0]),
+                ..Default::default()
+            },
+        }];
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(format!("/api/patch/{doc_id}"))
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(serde_json::to_vec(&ops).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let json: PatchResponse = serde_json::from_slice(&body).unwrap();
+
+        assert!(json.ok);
+        assert!(json.remap.is_none());
+        assert!(json.message.is_some());
+        let encoded = json.updated_pdf.expect("pdf data should be returned");
+        assert!(encoded.starts_with("data:application/pdf;base64,"));
+
+        let expected = format!("data:application/pdf;base64,{}", BASE64.encode(&pdf_bytes));
+        assert_eq!(encoded, expected);
+
+        let store = app_state.store.read().await;
+        let entry = store.get(doc_id).expect("document should remain in store");
+        assert_eq!(entry.ir, DocumentIR::sample());
+    }
+
+    #[tokio::test]
+    async fn apply_patch_endpoint_errors_for_missing_document() {
+        let app = test_router(AppState::default());
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/patch/missing")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from("[]"))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn download_pdf_endpoint_streams_binary_content() {
+        let doc_id = "doc-5150";
+        let pdf_bytes = b"%PDF-Stub".to_vec();
+        let state = seed_state_with_sample(doc_id, pdf_bytes.clone()).await;
+        let app = test_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("GET")
+                    .uri(format!("/api/pdf/{doc_id}"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response
+                .headers()
+                .get(header::CONTENT_TYPE)
+                .expect("content type header")
+                .to_str()
+                .unwrap(),
+            "application/pdf"
+        );
+
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        assert_eq!(body.as_ref(), pdf_bytes);
     }
 }
