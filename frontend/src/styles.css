@@ -31,12 +31,6 @@ body {
   font-size: 1.5rem;
 }
 
-.sidebar__intro {
-  margin: 0;
-  font-size: 0.9rem;
-  color: rgba(248, 250, 252, 0.75);
-}
-
 .button {
   display: inline-flex;
   align-items: center;
@@ -55,11 +49,15 @@ body {
 .button--secondary {
   background: rgba(37, 99, 235, 0.2);
   color: #bfdbfe;
-  cursor: pointer;
 }
 
 .button input[type='file'] {
   display: none;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .status {
@@ -72,16 +70,12 @@ body {
   overflow: auto;
   background: #0f172a;
   padding: 2rem;
-}
-
-.page-stack {
   display: flex;
-  flex-direction: column;
-  gap: 2rem;
-  align-items: center;
+  justify-content: center;
+  align-items: flex-start;
 }
 
-.page-wrapper {
+.viewer {
   position: relative;
   box-shadow: 0 20px 40px rgba(15, 23, 42, 0.6);
   border-radius: 0.5rem;
@@ -89,26 +83,19 @@ body {
   background: #fff;
 }
 
-.page-wrapper__pdf canvas {
-  display: block;
+.viewer__pdf {
+  position: relative;
 }
 
-.page-wrapper__overlay {
+.viewer__overlay {
   position: absolute;
   inset: 0;
 }
 
-.fabric-page-overlay {
-  position: absolute;
-  inset: 0;
-}
-
-.page-wrapper__overlay canvas {
+.pdf-underlay {
   display: block;
 }
 
-.pdf-page-canvas {
-  width: 100%;
-  height: auto;
+.pdf-overlay {
   display: block;
 }
