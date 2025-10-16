@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json",
+  "name": "fab-dev",
+  "image": "mcr.microsoft.com/devcontainers/rust:1-1-bullseye",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts",
+      "pnpm": "true"
+    }
+  },
+  "postCreateCommand": "rustup target add wasm32-unknown-unknown && cargo install cargo-watch --locked --force && sudo apt-get update && sudo apt-get install -y poppler-utils ghostscript",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "rust-analyzer.cargo.watchOptions.command": "cargo-watch"
+      }
+    }
+  }
+}

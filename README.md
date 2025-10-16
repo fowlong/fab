@@ -60,6 +60,17 @@ cargo run
 
 The Axum server starts on <http://localhost:8787>. The `/api/open`, `/api/ir/:docId`, `/api/patch/:docId`, and `/api/pdf/:docId` routes are stubbed and return mock data.
 
+## Development environment
+
+Open the repository in the provided [Development Container](https://containers.dev/) configuration to get a reproducible toolchain with:
+
+* Rust (stable) plus the `wasm32-unknown-unknown` target and [`cargo-watch`](https://github.com/watchexec/cargo-watch).
+* Node.js LTS with `pnpm` installed.
+* `poppler-utils` (`pdftoppm`) and Ghostscript for generating PDF image diffs.
+
+> [!TIP]
+> On Windows hosts outside of the Dev Container, install the PDF tooling with Chocolatey: `choco install poppler`.
+
 ## Roadmap
 
 * Implement real PDF parsing in `backend/src/pdf/extract.rs`.
