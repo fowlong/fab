@@ -1,4 +1,4 @@
-import type { fabric } from 'fabric';
+import { Canvas, FabricObject, Rect } from 'fabric';
 import type { PageObject, PageIR } from './types';
 import { ptToPxMatrix, SCALE, type Matrix } from './coords';
 
@@ -39,12 +39,12 @@ export function bboxPtToPx(page: PageIR, bbox: [number, number, number, number])
 }
 
 export function createFabricPlaceholder(
-  canvas: fabric.Canvas,
+  canvas: Canvas,
   page: PageIR,
   obj: PageObject,
-): fabric.Object {
+): FabricObject {
   const [left, top, width, height] = bboxPtToPx(page, obj.bbox);
-  const rect = new fabric.Rect({
+  const rect = new Rect({
     left,
     top,
     width,

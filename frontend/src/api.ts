@@ -1,6 +1,9 @@
 import type { DocumentIR, PatchOperation, PatchResponse } from './types';
 
-const DEFAULT_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8787';
+const DEFAULT_BASE =
+  ((typeof import.meta !== 'undefined' ? (import.meta as any).env?.VITE_API_BASE : undefined) as
+    | string
+    | undefined) ?? (globalThis as any).__API_BASE ?? 'http://localhost:8787';
 
 export type OpenResponse = {
   docId: string;

@@ -26,3 +26,24 @@ impl BBox {
         self.max_y - self.min_y
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn width_and_height_are_positive() {
+        let bbox = BBox::new(10.0, 20.0, 25.0, 45.0);
+        assert_eq!(bbox.width(), 15.0);
+        assert_eq!(bbox.height(), 25.0);
+    }
+
+    #[test]
+    fn constructing_bbox_preserves_coordinates() {
+        let bbox = BBox::new(-5.0, 2.5, 10.0, 8.0);
+        assert_eq!(bbox.min_x, -5.0);
+        assert_eq!(bbox.min_y, 2.5);
+        assert_eq!(bbox.max_x, 10.0);
+        assert_eq!(bbox.max_y, 8.0);
+    }
+}

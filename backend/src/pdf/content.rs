@@ -10,3 +10,14 @@ use anyhow::Result;
 pub fn tokenize_stream(_bytes: &[u8]) -> Result<Vec<String>> {
     Ok(Vec::new())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tokenize_stream_returns_empty_collection() {
+        let tokens = tokenize_stream(b"BT (Hello) Tj ET").expect("tokenization should succeed");
+        assert!(tokens.is_empty());
+    }
+}

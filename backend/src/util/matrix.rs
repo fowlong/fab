@@ -33,3 +33,50 @@ impl Matrix2D {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn identity_is_neutral_element() {
+        let transform = Matrix2D {
+            a: 0.5,
+            b: 0.1,
+            c: -0.3,
+            d: 1.2,
+            e: 42.0,
+            f: -7.0,
+        };
+
+        assert_eq!(transform.multiply(Matrix2D::identity()), transform);
+        assert_eq!(Matrix2D::identity().multiply(transform), transform);
+    }
+
+    #[test]
+    fn multiply_combines_scale_and_translation() {
+        let scale = Matrix2D {
+            a: 2.0,
+            b: 0.0,
+            c: 0.0,
+            d: 2.0,
+            e: 0.0,
+            f: 0.0,
+        };
+        let translate = Matrix2D {
+            a: 1.0,
+            b: 0.0,
+            c: 0.0,
+            d: 1.0,
+            e: 10.0,
+            f: -5.0,
+        };
+
+        let combined = scale.multiply(translate);
+
+        assert_eq!(combined.a, 2.0);
+        assert_eq!(combined.d, 2.0);
+        assert_eq!(combined.e, 20.0);
+        assert_eq!(combined.f, -10.0);
+    }
+}
