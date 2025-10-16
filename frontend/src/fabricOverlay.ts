@@ -1,79 +1,135 @@
-// src/fabricOverlay.ts
+import { fabric } from 'fabric';
+import type { Matrix, DocumentIR, ImageObject, TextObject } from './types';
+import { fabricDeltaToPdfDelta, invert, multiply, pxToPtMatrix, S } from './coords';
 
-// Robust import that works across Fabric v4/v5 and different bundlers
-import * as FabricNS from 'fabric';
-const fabric: any =
-  (FabricNS as any).fabric ?? // UMD-style { fabric }
-  (FabricNS as any).default ?? // default export carrying the namespace
-  (FabricNS as any); // namespace exports (Canvas, Rect, etc. on the root)
+export type TransformHandler = (
+  payload: {
+    id: string;
+    kind: 'text' | 'image';
+    delta: Matrix;
+  },
+) => Promise<void>;
 
-import type { DocumentIR, PageIR, PageObject } from './types';
-import { createFabricPlaceholder } from './mapping';
-
-type OverlayEntry = {
-  // Use `any` to avoid TS complaining about types across the various export shapes
-  canvas: any;
-  element: HTMLCanvasElement;
+type ControllerMeta = {
+  id: string;
+  kind: 'text' | 'image';
+  base: Matrix;
 };
 
-export class FabricOverlayManager {
-  private overlays = new Map<number, OverlayEntry>();
+export class FabricOverlay {
+  private canvas: fabric.Canvas | null = null;
+  private pageHeightPt = 0;
+  private onTransform: TransformHandler | null = null;
+  private isPatching = false;
 
-  reset() {
-    for (const entry of this.overlays.values()) {
-      entry.canvas.dispose();
-      entry.element.remove();
-    }
-    this.overlays.clear();
-  }
-
-  mountOverlay(
-    page: PageIR,
-    wrapper: HTMLElement,
-    size: { width: number; height: number },
-  ) {
-    const existing = this.overlays.get(page.index);
-    if (existing) {
-      existing.canvas.dispose();
-      existing.element.remove();
-    }
-
+  initialise(container: HTMLElement, widthPx: number, heightPx: number): void {
+    container.innerHTML = '';
     const canvasEl = document.createElement('canvas');
-    canvasEl.width = size.width;
-    canvasEl.height = size.height;
-    canvasEl.style.width = `${size.width}px`;
-    canvasEl.style.height = `${size.height}px`;
-    canvasEl.className = 'fabric-page-overlay';
-    wrapper.appendChild(canvasEl);
-
-    const canvas = new fabric.Canvas(canvasEl, {
-      selection: true,
+    canvasEl.width = widthPx;
+    canvasEl.height = heightPx;
+    canvasEl.style.width = `${widthPx}px`;
+    canvasEl.style.height = `${heightPx}px`;
+    container.appendChild(canvasEl);
+    this.canvas = new fabric.Canvas(canvasEl, {
+      selection: false,
+      preserveObjectStacking: true,
     });
-
-    this.overlays.set(page.index, { canvas, element: canvasEl });
-    return canvas;
   }
 
-  populate(
+  async render(
     ir: DocumentIR,
-    wrappers: HTMLElement[],
-    pageSizes: Array<{ width: number; height: number }>,
-  ) {
-    this.reset();
+    metrics: { widthPx: number; heightPx: number; heightPt: number },
+    onTransform: TransformHandler,
+  ): Promise<void> {
+    if (!this.canvas) {
+      throw new Error('Overlay canvas not initialised');
+    }
+    this.canvas.clear();
+    this.canvas.off('object:modified');
+    this.onTransform = onTransform;
+    this.pageHeightPt = metrics.heightPt;
 
-    ir.pages.forEach((page) => {
-      const wrapper = wrappers[page.index];
-      const size = pageSizes[page.index];
-      if (!wrapper || !size) return;
+    const ptToPx = invert(pxToPtMatrix(metrics.heightPt));
 
-      const canvas = this.mountOverlay(page, wrapper, size);
-      page.objects.forEach((obj) => this.addPlaceholder(canvas, page, obj));
-      canvas.renderAll();
+    for (const object of ir.pages[0]?.objects ?? []) {
+      if (object.kind === 'text') {
+        this.addTextController(object, ptToPx);
+      } else if (object.kind === 'image') {
+        this.addImageController(object, ptToPx);
+      }
+    }
+
+    this.canvas.on('object:modified', async (event) => {
+      if (this.isPatching) {
+        return;
+      }
+      const target = event.target as fabric.Object | undefined;
+      if (!target) {
+        return;
+      }
+      const meta = target.data as ControllerMeta | undefined;
+      if (!meta || !this.onTransform) {
+        return;
+      }
+      const currentMatrix = target.calcTransformMatrix();
+      const delta = fabricDeltaToPdfDelta(meta.base, currentMatrix as Matrix, this.pageHeightPt);
+      this.isPatching = true;
+      try {
+        await this.onTransform({ id: meta.id, kind: meta.kind, delta });
+        meta.base = currentMatrix as Matrix;
+      } finally {
+        this.isPatching = false;
+      }
     });
   }
 
-  private addPlaceholder(canvas: any, page: PageIR, obj: PageObject) {
-    const placeholder = createFabricPlaceholder(canvas, page, obj);
-    canvas.add(placeholder);
+  private addTextController(object: TextObject, ptToPx: Matrix): void {
+    if (!this.canvas) {
+      return;
+    }
+    const matrix = multiply(ptToPx, object.Tm);
+    const widthPt = object.bbox ? object.bbox[2] - object.bbox[0] : object.font.size * 6;
+    const heightPt = object.bbox ? object.bbox[3] - object.bbox[1] : object.font.size * 1.2;
+    const rect = this.createController(widthPt, heightPt, matrix, object.id, 'text');
+    this.canvas.add(rect);
+  }
+
+  private addImageController(object: ImageObject, ptToPx: Matrix): void {
+    if (!this.canvas) {
+      return;
+    }
+    const matrix = multiply(ptToPx, object.cm);
+    const widthPt = object.bbox ? object.bbox[2] - object.bbox[0] : 100;
+    const heightPt = object.bbox ? object.bbox[3] - object.bbox[1] : 100;
+    const rect = this.createController(widthPt, heightPt, matrix, object.id, 'image');
+    this.canvas.add(rect);
+  }
+
+  private createController(
+    widthPt: number,
+    heightPt: number,
+    transformMatrix: Matrix,
+    id: string,
+    kind: 'text' | 'image',
+  ): fabric.Rect {
+    const widthPx = widthPt / S;
+    const heightPx = heightPt / S;
+    const rect = new fabric.Rect({
+      width: widthPx,
+      height: heightPx,
+      fill: 'rgba(33, 150, 243, 0.08)',
+      stroke: '#2196f3',
+      strokeWidth: 1,
+      strokeDashArray: [6, 4],
+      selectable: true,
+      hasBorders: false,
+      hasControls: true,
+      lockScalingFlip: true,
+      originX: 'left',
+      originY: 'top',
+    });
+    rect.set('transformMatrix', transformMatrix);
+    rect.set('data', { id, kind, base: rect.calcTransformMatrix() } satisfies ControllerMeta);
+    return rect;
   }
 }

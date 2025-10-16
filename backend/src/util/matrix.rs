@@ -22,6 +22,32 @@ impl Matrix2D {
         }
     }
 
+    pub fn from_array(values: [f64; 6]) -> Self {
+        Self {
+            a: values[0],
+            b: values[1],
+            c: values[2],
+            d: values[3],
+            e: values[4],
+            f: values[5],
+        }
+    }
+
+    pub fn to_array(self) -> [f64; 6] {
+        [self.a, self.b, self.c, self.d, self.e, self.f]
+    }
+
+    pub fn translation(tx: f64, ty: f64) -> Self {
+        Self {
+            a: 1.0,
+            b: 0.0,
+            c: 0.0,
+            d: 1.0,
+            e: tx,
+            f: ty,
+        }
+    }
+
     pub fn multiply(self, other: Self) -> Self {
         Self {
             a: self.a * other.a + self.c * other.b,
