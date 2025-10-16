@@ -1,6 +1,7 @@
 import './styles.css';
 import { PdfPreview } from './pdfPreview';
 import { FabricOverlayManager } from './fabricOverlay';
+import { fetchPdfBytes, getIR, open, patchDocument } from './api';
 import type { DocumentIR } from './types';
 
 const app = document.querySelector<HTMLDivElement>('#app');
@@ -11,13 +12,13 @@ if (!app) {
 app.innerHTML = `
   <div class="layout">
     <aside class="sidebar">
-      <h1>PDF Editor</h1>
-      <p class="sidebar__intro">Upload a PDF or load the bundled sample to inspect the IR-driven overlay.</p>
-      <button id="load-sample" class="button">Load sample document</button>
+      <h1>PDF Transform MVP</h1>
+      <p class="sidebar__intro">Upload a PDF and drag the overlays to update the underlying content stream matrices.</p>
       <label class="button button--secondary">
         <span>Select PDF…</span>
         <input id="file-input" type="file" accept="application/pdf" hidden />
       </label>
+      <button id="download" class="button" disabled>Download current PDF</button>
       <div id="status" class="status"></div>
     </aside>
     <section class="editor">
@@ -28,62 +29,29 @@ app.innerHTML = `
 
 const statusEl = document.getElementById('status') as HTMLDivElement;
 const pageStack = document.getElementById('page-stack') as HTMLDivElement;
+const fileInput = document.getElementById('file-input') as HTMLInputElement;
+const downloadButton = document.getElementById('download') as HTMLButtonElement;
 
 const pdfContainer = document.createElement('div');
 const preview = new PdfPreview(pdfContainer);
 const overlayManager = new FabricOverlayManager();
 
-const sampleIr: DocumentIR = {
-  pages: [
-    {
-      index: 0,
-      widthPt: 595.276,
-      heightPt: 841.89,
-      objects: [
-        {
-          id: 't:42',
-          kind: 'text',
-          pdfRef: { obj: 187, gen: 0 },
-          btSpan: { start: 12034, end: 12345, streamObj: 155 },
-          Tm: [1, 0, 0, 1, 100.2, 700.5],
-          font: { resName: 'F2', size: 10.5, type: 'Type0' },
-          unicode: 'Invoice #01234',
-          glyphs: [
-            { gid: 123, dx: 500, dy: 0 },
-            { gid: 87, dx: 480, dy: 0 },
-          ],
-          bbox: [98.4, 688.0, 210.0, 705.0],
-        },
-        {
-          id: 'img:9',
-          kind: 'image',
-          pdfRef: { obj: 200, gen: 0 },
-          xObject: 'Im7',
-          cm: [120, 0, 0, 90, 300.0, 500.0],
-          bbox: [300.0, 500.0, 420.0, 590.0],
-        },
-      ],
-    },
-  ],
-};
+let currentDocId: string | null = null;
+let isBusy = false;
 
-async function loadSample() {
-  setStatus('Loading bundled sample…');
-  const response = await fetch('/sample.pdf');
-  const arrayBuffer = await response.arrayBuffer();
-  await render(arrayBuffer, sampleIr);
-  setStatus('Sample loaded.');
+function setStatus(message: string) {
+  statusEl.textContent = message;
 }
 
-async function render(pdfData: ArrayBuffer, ir: DocumentIR) {
+async function renderDocument(docId: string, ir: DocumentIR, pdfData: ArrayBuffer) {
   pageStack.innerHTML = '';
   pdfContainer.innerHTML = '';
   await preview.load(pdfData);
   const sizes = preview.getSizes();
-  const pdfCanvases = Array.from(pdfContainer.querySelectorAll('canvas'));
+  const canvases = Array.from(pdfContainer.querySelectorAll('canvas'));
   const overlayWrappers: HTMLElement[] = [];
 
-  pdfCanvases.forEach((canvas, index) => {
+  canvases.forEach((canvas, index) => {
     const wrapper = document.createElement('div');
     wrapper.className = 'page-wrapper';
     wrapper.style.width = `${canvas.width}px`;
@@ -99,26 +67,76 @@ async function render(pdfData: ArrayBuffer, ir: DocumentIR) {
     overlayWrappers[index] = overlayLayer;
   });
 
-  overlayManager.populate(ir, overlayWrappers, sizes);
+  overlayManager.populate(ir, overlayWrappers, sizes, async (patch) => {
+    if (!currentDocId) {
+      return false;
+    }
+    try {
+      await patchDocument(currentDocId, [patch]);
+      await refreshDocument(currentDocId);
+      setStatus('Transform applied.');
+      return true;
+    } catch (err) {
+      console.error(err);
+      setStatus(`Transform failed: ${err instanceof Error ? err.message : String(err)}`);
+      return false;
+    }
+  });
 }
 
-function setStatus(message: string) {
-  statusEl.textContent = message;
+async function refreshDocument(docId: string) {
+  if (isBusy) return;
+  isBusy = true;
+  try {
+    setStatus('Fetching IR and PDF…');
+    const [ir, pdfBytes] = await Promise.all([getIR(docId), fetchPdfBytes(docId)]);
+    await renderDocument(docId, ir, pdfBytes);
+    downloadButton.disabled = false;
+    setStatus('Ready. Drag the overlays to update the PDF.');
+  } catch (err) {
+    console.error(err);
+    setStatus(`Failed to load document: ${err instanceof Error ? err.message : String(err)}`);
+  } finally {
+    isBusy = false;
+  }
 }
 
-const loadSampleButton = document.getElementById('load-sample') as HTMLButtonElement;
-loadSampleButton.addEventListener('click', () => {
-  loadSample().catch((err) => setStatus(`Failed to load sample: ${err}`));
-});
-
-const fileInput = document.getElementById('file-input') as HTMLInputElement;
 fileInput.addEventListener('change', async (event) => {
   const input = event.target as HTMLInputElement;
   if (!input.files || input.files.length === 0) {
     return;
   }
   const file = input.files[0];
-  setStatus(`Loaded local file: ${file.name}. Backend integration pending.`);
+  try {
+    setStatus('Uploading PDF…');
+    const { docId } = await open(file);
+    currentDocId = docId;
+    await refreshDocument(docId);
+  } catch (err) {
+    console.error(err);
+    setStatus(`Failed to open PDF: ${err instanceof Error ? err.message : String(err)}`);
+  }
 });
 
-setStatus('Ready. Load the sample to see placeholder overlays.');
+downloadButton.addEventListener('click', async () => {
+  if (!currentDocId || isBusy) {
+    return;
+  }
+  try {
+    setStatus('Preparing download…');
+    const bytes = await fetchPdfBytes(currentDocId);
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${currentDocId}.pdf`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setStatus('Download triggered.');
+  } catch (err) {
+    console.error(err);
+    setStatus(`Download failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
+});
+
+setStatus('Select a PDF to begin.');

@@ -1,42 +1,42 @@
 mod pdf;
 mod types;
-mod util;
 
-use std::{
-    collections::HashMap,
-    net::SocketAddr,
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc,
-    },
-};
+use std::collections::HashMap;
+use std::net::SocketAddr;
+use std::path::PathBuf;
+use std::sync::{atomic::AtomicUsize, atomic::Ordering, Arc};
 
-use axum::{
-    extract::{Multipart, Path, State},
-    http::{header, StatusCode},
-    response::{IntoResponse, Response},
-    routing::{get, post},
-    Json, Router,
-};
-use base64::engine::general_purpose::STANDARD as BASE64;
-use base64::Engine;
-use tokio::{net::TcpListener, sync::RwLock};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use anyhow::Context;
+use axum::body::Bytes;
+use axum::extract::Either;
+use axum::extract::Json;
+use axum::extract::{DefaultBodyLimit, Multipart, Path, State};
+use axum::http::{header, HeaderValue, Method, StatusCode};
+use axum::response::{IntoResponse, Response};
+use axum::routing::{get, post};
+use axum::Router;
+use tokio::fs;
+use tokio::net::TcpListener;
+use tokio::sync::RwLock;
+use tower_http::cors::CorsLayer;
 
+use crate::pdf::extract::{build_document_ir, extract_page0};
+use crate::pdf::loader::{load_document, LoadedDoc};
+use crate::pdf::patch::{apply_patches, PatchResult};
 use crate::types::{DocumentIR, PatchOperation, PatchResponse};
 
-const SAMPLE_PDF: &[u8] = include_bytes!("../../e2e/sample.pdf");
 static NEXT_ID: AtomicUsize = AtomicUsize::new(1);
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 struct AppState {
-    store: Arc<RwLock<HashMap<String, DocumentEntry>>>,
+    store: Arc<RwLock<HashMap<String, LoadedDoc>>>,
 }
 
-#[derive(Clone)]
-struct DocumentEntry {
-    ir: DocumentIR,
-    pdf: Vec<u8>,
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Base64OpenRequest {
+    #[serde(alias = "pdfBase64", alias = "data")]
+    base64_pdf: String,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -47,118 +47,129 @@ struct OpenResponse {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "info".into()),
-        )
-        .with(tracing_subscriber::fmt::layer())
-        .init();
+    let state = AppState {
+        store: Arc::new(RwLock::new(HashMap::new())),
+    };
 
-    let state = AppState::default();
+    let cors = CorsLayer::new()
+        .allow_origin("http://localhost:5173".parse::<HeaderValue>().unwrap())
+        .allow_methods([Method::GET, Method::POST])
+        .allow_headers([header::CONTENT_TYPE]);
 
     let app = Router::new()
         .route("/api/open", post(open_document))
         .route("/api/ir/:doc_id", get(get_ir))
         .route("/api/patch/:doc_id", post(apply_patch))
         .route("/api/pdf/:doc_id", get(download_pdf))
+        .layer(DefaultBodyLimit::max(25 * 1024 * 1024))
+        .layer(cors)
         .with_state(state);
 
-    // Bind & serve (Axum 0.7 style)
-    // Use 127.0.0.1 for local-only; switch to ([0,0,0,0], 8787) to listen on all interfaces.
-    let addr: SocketAddr = ([127, 0, 0, 1], 8787).into();
+    let addr: SocketAddr = ([0, 0, 0, 0], 8787).into();
     let listener = TcpListener::bind(addr).await?;
-    tracing::info!("listening on http://{}", listener.local_addr()?);
     axum::serve(listener, app).await?;
-
     Ok(())
 }
 
 async fn open_document(
     State(state): State<AppState>,
-    mut multipart: Multipart,
+    payload: Either<Json<Base64OpenRequest>, Multipart>,
 ) -> Result<Json<OpenResponse>, ApiError> {
-    let mut pdf_bytes: Vec<u8> = Vec::new();
-    while let Some(field) = multipart.next_field().await? {
-        if field.name() == Some("file") {
-            pdf_bytes = field.bytes().await?.to_vec();
-            break;
-        }
-    }
-    if pdf_bytes.is_empty() {
-        pdf_bytes = SAMPLE_PDF.to_vec();
+    let bytes = match payload {
+        Either::Left(Json(data)) => decode_base64(&data.base64_pdf)?,
+        Either::Right(mut multipart) => extract_file_from_multipart(&mut multipart).await?,
+    };
+
+    if bytes.is_empty() {
+        return Err(ApiError::BadRequest("no PDF supplied".into()));
     }
 
-    let ir = DocumentIR::sample();
     let doc_id = new_doc_id();
+    let path = ensure_doc_path(&doc_id).await?;
+    fs::write(&path, &bytes)
+        .await
+        .with_context(|| format!("failed to persist {doc_id}"))?;
+    let loaded = load_document(bytes, path)?;
 
     let mut store = state.store.write().await;
-    store.insert(
-        doc_id.clone(),
-        DocumentEntry {
-            ir: ir.clone(),
-            pdf: pdf_bytes,
-        },
-    );
+    store.insert(doc_id.clone(), loaded);
 
     Ok(Json(OpenResponse { doc_id }))
 }
 
 async fn get_ir(
-    Path(doc_id): Path<String>,
     State(state): State<AppState>,
+    Path(doc_id): Path<String>,
 ) -> Result<Json<DocumentIR>, ApiError> {
-    let store = state.store.read().await;
-    let entry = store.get(&doc_id).ok_or(ApiError::NotFound)?;
-    Ok(Json(entry.ir.clone()))
+    let mut store = state.store.write().await;
+    let entry = store.get_mut(&doc_id).ok_or(ApiError::NotFound)?;
+    if entry.cache.page0.is_none() {
+        let cache = extract_page0(&entry.document, &entry.page0, &HashMap::new())?;
+        entry.cache.page0 = Some(cache);
+    }
+    let cache = entry.cache.page0.as_ref().unwrap();
+    Ok(Json(build_document_ir(cache)))
 }
 
 async fn apply_patch(
-    Path(doc_id): Path<String>,
     State(state): State<AppState>,
+    Path(doc_id): Path<String>,
     Json(ops): Json<Vec<PatchOperation>>,
 ) -> Result<Json<PatchResponse>, ApiError> {
-    tracing::info!(doc_id, op_count = ops.len(), "received patch batch");
     let mut store = state.store.write().await;
     let entry = store.get_mut(&doc_id).ok_or(ApiError::NotFound)?;
-    let mut ir = entry.ir.clone();
-    pdf::patch::apply_patches(&mut ir, &ops)?; // stubbed in MVP
-    entry.ir = ir;
-
-    let encoded = format!(
-        "data:application/pdf;base64,{}",
-        BASE64.encode(&entry.pdf)
-    );
-
+    let PatchResult { bytes, .. } = apply_patches(entry, &ops)?;
+    fs::write(&entry.path, &bytes)
+        .await
+        .with_context(|| format!("failed to update {doc_id}"))?;
+    let encoded = format!("data:application/pdf;base64,{}", encode_base64(&bytes));
     Ok(Json(PatchResponse {
         ok: true,
         updated_pdf: Some(encoded),
         remap: None,
-        message: Some("Patch handling is stubbed in the MVP backend".into()),
     }))
 }
 
 async fn download_pdf(
-    Path(doc_id): Path<String>,
     State(state): State<AppState>,
+    Path(doc_id): Path<String>,
 ) -> Result<Response, ApiError> {
     let store = state.store.read().await;
     let entry = store.get(&doc_id).ok_or(ApiError::NotFound)?;
-    let mut response = Response::new(entry.pdf.clone().into());
-    *response.status_mut() = StatusCode::OK;
+    let mut response = Response::new(Bytes::from(entry.bytes.clone()));
     response.headers_mut().insert(
         header::CONTENT_TYPE,
-        header::HeaderValue::from_static("application/pdf"),
+        HeaderValue::from_static("application/pdf"),
     );
     Ok(response)
+}
+
+async fn extract_file_from_multipart(multipart: &mut Multipart) -> Result<Vec<u8>, ApiError> {
+    while let Some(field) = multipart.next_field().await? {
+        if field.name() == Some("file") {
+            return Ok(field.bytes().await?.to_vec());
+        }
+    }
+    Err(ApiError::BadRequest("file field missing".into()))
+}
+
+async fn ensure_doc_path(doc_id: &str) -> Result<PathBuf, ApiError> {
+    let dir = PathBuf::from("/tmp/fab");
+    fs::create_dir_all(&dir).await?;
+    Ok(dir.join(format!("{doc_id}.pdf")))
+}
+
+fn new_doc_id() -> String {
+    let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+    format!("doc-{id:04}")
 }
 
 #[derive(Debug, thiserror::Error)]
 enum ApiError {
     #[error("document not found")]
     NotFound,
-    #[error(transparent)]
-    Multipart(#[from] axum::extract::multipart::MultipartError),
+    #[error("bad request: {0}")]
+    BadRequest(String),
     #[error(transparent)]
     Internal(#[from] anyhow::Error),
 }
@@ -167,31 +178,86 @@ impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         match self {
             ApiError::NotFound => (StatusCode::NOT_FOUND, "document not found").into_response(),
-            ApiError::Multipart(err) => {
-                tracing::error!(error = %err, "multipart error");
-                (StatusCode::BAD_REQUEST, "invalid multipart payload").into_response()
-            }
-            ApiError::Internal(err) => {
-                tracing::error!(error = %err, "internal error");
-                (StatusCode::INTERNAL_SERVER_ERROR, "internal server error").into_response()
-            }
+            ApiError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg).into_response(),
+            ApiError::Internal(err) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("internal error: {err}"),
+            )
+                .into_response(),
         }
     }
 }
 
-fn new_doc_id() -> String {
-    let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
-    format!("doc-{id:04}")
+fn decode_base64(value: &str) -> Result<Vec<u8>, ApiError> {
+    let trimmed = value.trim();
+    let content = trimmed
+        .strip_prefix("data:application/pdf;base64,")
+        .unwrap_or(trimmed);
+    let mut clean = Vec::new();
+    for byte in content.bytes() {
+        if byte.is_ascii_whitespace() {
+            continue;
+        }
+        clean.push(byte);
+    }
+    if clean.len() % 4 != 0 {
+        return Err(ApiError::BadRequest("invalid base64 length".into()));
+    }
+    let mut output = Vec::new();
+    for chunk in clean.chunks(4) {
+        let mut vals = [0u8; 4];
+        let mut padding = 0;
+        for (idx, &b) in chunk.iter().enumerate() {
+            vals[idx] = match b {
+                b'A'..=b'Z' => b - b'A',
+                b'a'..=b'z' => b - b'a' + 26,
+                b'0'..=b'9' => b - b'0' + 52,
+                b'+' => 62,
+                b'/' => 63,
+                b'=' => {
+                    padding += 1;
+                    0
+                }
+                _ => return Err(ApiError::BadRequest("invalid base64 character".into())),
+            };
+        }
+        output.push((vals[0] << 2) | (vals[1] >> 4));
+        if padding < 2 {
+            output.push((vals[1] << 4) | (vals[2] >> 2));
+        }
+        if padding == 0 {
+            output.push((vals[2] << 6) | vals[3]);
+        }
+    }
+    Ok(output)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn sample_ir_contains_objects() {
-        let ir = DocumentIR::sample();
-        assert_eq!(ir.pages.len(), 1);
-        assert_eq!(ir.pages[0].objects.len(), 2);
+fn encode_base64(data: &[u8]) -> String {
+    const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut output = String::with_capacity((data.len() + 2) / 3 * 4);
+    let mut i = 0;
+    while i + 3 <= data.len() {
+        let chunk = &data[i..i + 3];
+        let n = ((chunk[0] as u32) << 16) | ((chunk[1] as u32) << 8) | chunk[2] as u32;
+        output.push(TABLE[((n >> 18) & 0x3F) as usize] as char);
+        output.push(TABLE[((n >> 12) & 0x3F) as usize] as char);
+        output.push(TABLE[((n >> 6) & 0x3F) as usize] as char);
+        output.push(TABLE[(n & 0x3F) as usize] as char);
+        i += 3;
     }
+    let rem = data.len() - i;
+    if rem == 1 {
+        let n = (data[i] as u32) << 16;
+        output.push(TABLE[((n >> 18) & 0x3F) as usize] as char);
+        output.push(TABLE[((n >> 12) & 0x3F) as usize] as char);
+        output.push('=');
+        output.push('=');
+    } else if rem == 2 {
+        let n = ((data[i] as u32) << 16) | ((data[i + 1] as u32) << 8);
+        output.push(TABLE[((n >> 18) & 0x3F) as usize] as char);
+        output.push(TABLE[((n >> 12) & 0x3F) as usize] as char);
+        output.push(TABLE[((n >> 6) & 0x3F) as usize] as char);
+        output.push('=');
+    }
+    output
 }
