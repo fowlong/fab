@@ -1,124 +1,243 @@
 import './styles.css';
 import { PdfPreview } from './pdfPreview';
-import { FabricOverlayManager } from './fabricOverlay';
-import type { DocumentIR } from './types';
+import { FabricOverlay } from './fabricOverlay';
+import { download, getIR, open, patch } from './api';
+import type { DocumentIR, Matrix, PageObject, PatchOperation } from './types';
+import { invert, multiply } from './coords';
 
 const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) {
-  throw new Error('App container missing');
+  throw new Error('Application container is missing.');
 }
+
+type LoadedState = {
+  docId: string;
+  ir: DocumentIR;
+};
+
+let state: LoadedState | null = null;
+let preview: PdfPreview;
+let overlay: FabricOverlay | null = null;
+let busy = false;
 
 app.innerHTML = `
   <div class="layout">
     <aside class="sidebar">
-      <h1>PDF Editor</h1>
-      <p class="sidebar__intro">Upload a PDF or load the bundled sample to inspect the IR-driven overlay.</p>
-      <button id="load-sample" class="button">Load sample document</button>
-      <label class="button button--secondary">
+      <h1>Transform stage</h1>
+      <label class="button">
         <span>Select PDF…</span>
-        <input id="file-input" type="file" accept="application/pdf" hidden />
+        <input id="file-input" type="file" accept="application/pdf" />
       </label>
+      <button id="download-btn" class="button button--secondary" disabled>
+        Download updated PDF
+      </button>
       <div id="status" class="status"></div>
     </aside>
     <section class="editor">
-      <div id="page-stack" class="page-stack"></div>
+      <div class="page-stack">
+        <div id="page-wrapper" class="page-wrapper" hidden>
+          <div id="pdf-layer" class="page-wrapper__pdf"></div>
+          <div id="overlay-layer" class="page-wrapper__overlay"></div>
+        </div>
+      </div>
     </section>
   </div>
 `;
 
+const fileInput = document.getElementById('file-input') as HTMLInputElement;
+const downloadBtn = document.getElementById('download-btn') as HTMLButtonElement;
 const statusEl = document.getElementById('status') as HTMLDivElement;
-const pageStack = document.getElementById('page-stack') as HTMLDivElement;
+const pdfLayer = document.getElementById('pdf-layer') as HTMLDivElement;
+const overlayLayer = document.getElementById('overlay-layer') as HTMLDivElement;
+const pageWrapper = document.getElementById('page-wrapper') as HTMLDivElement;
 
-const pdfContainer = document.createElement('div');
-const preview = new PdfPreview(pdfContainer);
-const overlayManager = new FabricOverlayManager();
-
-const sampleIr: DocumentIR = {
-  pages: [
-    {
-      index: 0,
-      widthPt: 595.276,
-      heightPt: 841.89,
-      objects: [
-        {
-          id: 't:42',
-          kind: 'text',
-          pdfRef: { obj: 187, gen: 0 },
-          btSpan: { start: 12034, end: 12345, streamObj: 155 },
-          Tm: [1, 0, 0, 1, 100.2, 700.5],
-          font: { resName: 'F2', size: 10.5, type: 'Type0' },
-          unicode: 'Invoice #01234',
-          glyphs: [
-            { gid: 123, dx: 500, dy: 0 },
-            { gid: 87, dx: 480, dy: 0 },
-          ],
-          bbox: [98.4, 688.0, 210.0, 705.0],
-        },
-        {
-          id: 'img:9',
-          kind: 'image',
-          pdfRef: { obj: 200, gen: 0 },
-          xObject: 'Im7',
-          cm: [120, 0, 0, 90, 300.0, 500.0],
-          bbox: [300.0, 500.0, 420.0, 590.0],
-        },
-      ],
-    },
-  ],
-};
-
-async function loadSample() {
-  setStatus('Loading bundled sample…');
-  const response = await fetch('/sample.pdf');
-  const arrayBuffer = await response.arrayBuffer();
-  await render(arrayBuffer, sampleIr);
-  setStatus('Sample loaded.');
-}
-
-async function render(pdfData: ArrayBuffer, ir: DocumentIR) {
-  pageStack.innerHTML = '';
-  pdfContainer.innerHTML = '';
-  await preview.load(pdfData);
-  const sizes = preview.getSizes();
-  const pdfCanvases = Array.from(pdfContainer.querySelectorAll('canvas'));
-  const overlayWrappers: HTMLElement[] = [];
-
-  pdfCanvases.forEach((canvas, index) => {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'page-wrapper';
-    wrapper.style.width = `${canvas.width}px`;
-    wrapper.style.height = `${canvas.height}px`;
-    const pdfLayer = document.createElement('div');
-    pdfLayer.className = 'page-wrapper__pdf';
-    pdfLayer.appendChild(canvas);
-    const overlayLayer = document.createElement('div');
-    overlayLayer.className = 'page-wrapper__overlay';
-    wrapper.appendChild(pdfLayer);
-    wrapper.appendChild(overlayLayer);
-    pageStack.appendChild(wrapper);
-    overlayWrappers[index] = overlayLayer;
-  });
-
-  overlayManager.populate(ir, overlayWrappers, sizes);
-}
+preview = new PdfPreview(pdfLayer);
 
 function setStatus(message: string) {
   statusEl.textContent = message;
 }
 
-const loadSampleButton = document.getElementById('load-sample') as HTMLButtonElement;
-loadSampleButton.addEventListener('click', () => {
-  loadSample().catch((err) => setStatus(`Failed to load sample: ${err}`));
-});
-
-const fileInput = document.getElementById('file-input') as HTMLInputElement;
-fileInput.addEventListener('change', async (event) => {
-  const input = event.target as HTMLInputElement;
-  if (!input.files || input.files.length === 0) {
+async function initialiseFromFile(file: File) {
+  if (busy) {
+    setStatus('Another action is already underway.');
     return;
   }
-  const file = input.files[0];
-  setStatus(`Loaded local file: ${file.name}. Backend integration pending.`);
+  busy = true;
+  try {
+    setStatus('Uploading PDF…');
+    const arrayBuffer = await file.arrayBuffer();
+    const { docId } = await open(file);
+
+    setStatus('Building page model…');
+    const ir = await getIR(docId);
+    if (ir.pages.length === 0) {
+      throw new Error('The document does not expose page 0.');
+    }
+    const page = ir.pages[0];
+
+    const metrics = await preview.render(arrayBuffer);
+    pageWrapper.style.width = `${metrics.widthPx}px`;
+    pageWrapper.style.height = `${metrics.heightPx}px`;
+    pageWrapper.hidden = false;
+
+    overlay?.dispose();
+    overlay = new FabricOverlay(
+      overlayLayer,
+      { width: metrics.widthPx, height: metrics.heightPx },
+      page.heightPt,
+      async ({ id, kind, pageIndex, deltaMatrixPt }) => {
+        await applyTransform({ id, kind, pageIndex, deltaMatrixPt });
+      },
+    );
+    overlay.setPage(page);
+
+    state = { docId, ir };
+    downloadBtn.disabled = false;
+    setStatus('Document ready. Drag, rotate, or scale the blue guides.');
+  } catch (error) {
+    console.error(error);
+    overlay?.dispose();
+    overlay = null;
+    state = null;
+    downloadBtn.disabled = true;
+    pageWrapper.hidden = true;
+    setStatus(`Failed to load PDF: ${(error as Error).message}`);
+  } finally {
+    busy = false;
+  }
+}
+
+async function applyTransform(args: {
+  id: string;
+  kind: 'text' | 'image';
+  pageIndex: number;
+  deltaMatrixPt: Matrix;
+}) {
+  if (!state) {
+    throw new Error('No document is loaded.');
+  }
+
+  const { docId, ir } = state;
+  setStatus('Applying transform…');
+  const op: PatchOperation = {
+    op: 'transform',
+    target: { page: args.pageIndex, id: args.id },
+    deltaMatrixPt: args.deltaMatrixPt,
+    kind: args.kind,
+  };
+
+  try {
+    const response = await patch(docId, [op]);
+    mutateIr(ir, args);
+    if (response.updatedPdf) {
+      const buffer = decodeDataUrl(response.updatedPdf);
+      const metrics = await preview.render(buffer);
+      pageWrapper.style.width = `${metrics.widthPx}px`;
+      pageWrapper.style.height = `${metrics.heightPx}px`;
+    }
+    setStatus('Transform applied.');
+  } catch (error) {
+    setStatus(`Transform failed: ${(error as Error).message}`);
+    throw error;
+  }
+}
+
+function mutateIr(ir: DocumentIR, args: {
+  id: string;
+  kind: 'text' | 'image';
+  pageIndex: number;
+  deltaMatrixPt: Matrix;
+}) {
+  const page = ir.pages[args.pageIndex];
+  if (!page) {
+    return;
+  }
+  const index = page.objects.findIndex((obj) => obj.id === args.id);
+  if (index < 0) {
+    return;
+  }
+  const object = page.objects[index];
+  const baseMatrix = object.kind === 'text' ? object.Tm : object.cm;
+  const updatedMatrix = multiply(args.deltaMatrixPt, baseMatrix);
+  const updatedBbox = computeUpdatedBbox(object, baseMatrix, updatedMatrix);
+
+  if (object.kind === 'text') {
+    object.Tm = updatedMatrix;
+  } else {
+    object.cm = updatedMatrix;
+  }
+  if (updatedBbox) {
+    object.bbox = updatedBbox;
+  }
+}
+
+function computeUpdatedBbox(
+  object: PageObject,
+  baseMatrix: Matrix,
+  nextMatrix: Matrix,
+): [number, number, number, number] | null {
+  const [x0, y0, x1, y1] = object.bbox;
+  try {
+    const inverse = invert(baseMatrix);
+    const localTopLeft = transformPoint(inverse, { x: x0, y: y1 });
+    const localTopRight = transformPoint(inverse, { x: x1, y: y1 });
+    const localBottomLeft = transformPoint(inverse, { x: x0, y: y0 });
+    const localBottomRight = transformPoint(inverse, { x: x1, y: y0 });
+
+    const corners = [
+      transformPoint(nextMatrix, localTopLeft),
+      transformPoint(nextMatrix, localTopRight),
+      transformPoint(nextMatrix, localBottomLeft),
+      transformPoint(nextMatrix, localBottomRight),
+    ];
+
+    const xs = corners.map((pt) => pt.x);
+    const ys = corners.map((pt) => pt.y);
+    return [
+      Math.min(...xs),
+      Math.min(...ys),
+      Math.max(...xs),
+      Math.max(...ys),
+    ];
+  } catch (error) {
+    console.warn('BBox update skipped:', error);
+    return null;
+  }
+}
+
+function transformPoint(matrix: Matrix, point: { x: number; y: number }) {
+  const [a, b, c, d, e, f] = matrix;
+  return {
+    x: a * point.x + c * point.y + e,
+    y: b * point.x + d * point.y + f,
+  };
+}
+
+function decodeDataUrl(dataUrl: string): ArrayBuffer {
+  const [, base64 = dataUrl] = dataUrl.split(',');
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
+fileInput.addEventListener('change', async () => {
+  const [file] = fileInput.files ?? [];
+  if (!file) {
+    return;
+  }
+  await initialiseFromFile(file);
+  fileInput.value = '';
 });
 
-setStatus('Ready. Load the sample to see placeholder overlays.');
+downloadBtn.addEventListener('click', () => {
+  if (!state) {
+    setStatus('Load a PDF before downloading.');
+    return;
+  }
+  download(state.docId);
+});
+
+setStatus('Select a PDF to begin.');
