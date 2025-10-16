@@ -20,19 +20,19 @@ The codebase is licensed under Apache-2.0. All third-party dependencies are limi
 
 ## Current status
 
-The current commit provides initial scaffolding for the frontend and backend projects together with strongly typed interfaces for the IR and patch protocol. Full PDF parsing, shaping, and editing logic are stubbed but the core routes and client wiring are ready for incremental feature development.
+Stage 2 ships a minimal but functional transform workflow:
 
 ### Frontend
 
-* Vite configuration for a TypeScript entry point.
-* Shared utility modules for coordinate math, Fabric.js mapping helpers, and API bindings.
-* React-free vanilla TypeScript app that renders pdf.js canvases and a Fabric overlay placeholder.
+* Renders page 0 of an uploaded PDF with `pdf.js`.
+* Uses Fabric.js controllers to drag, scale, and rotate text runs and image XObjects.
+* Converts Fabric transforms back into PDF point-space matrices before calling the backend.
 
 ### Backend
 
-* `cargo` workspace with Axum HTTP server skeleton.
-* Placeholder modules for PDF parsing, content tokenisation, patching, and font handling.
-* Data structures mirroring the JSON contracts shared with the frontend.
+* Persists uploaded PDFs to `/tmp/fab` and keeps an in-memory document store.
+* Tokenises page content streams to build an IR that exposes text and image placements.
+* Applies transform patches by rewriting `Tm`/`cm` matrices and appending an incremental PDF revision.
 
 ## Getting started
 
@@ -49,7 +49,7 @@ npm install
 npm run dev
 ```
 
-The development server listens on <http://localhost:5173>. For now it renders placeholder canvases because the backend does not yet implement PDF parsing.
+The development server listens on <http://localhost:5173>.
 
 ### Backend
 
@@ -58,7 +58,15 @@ cd backend
 cargo run
 ```
 
-The Axum server starts on <http://localhost:8787>. The `/api/open`, `/api/ir/:docId`, `/api/patch/:docId`, and `/api/pdf/:docId` routes are stubbed and return mock data.
+The Axum server listens on <http://localhost:8787> and serves the `/api/open`, `/api/ir/:docId`, `/api/patch/:docId`, and `/api/pdf/:docId` routes.
+
+## Stage 2 verification
+
+1. Start the backend (`cargo run` in `backend/`).
+2. Start the frontend dev server (`npm run dev` in `frontend/`).
+3. Visit <http://localhost:5173>, upload a one-page PDF that includes text and an image.
+4. Drag, rotate, and scale the overlays; each interaction triggers a transform patch.
+5. Use the “Download updated PDF” button to fetch the incrementally saved document and inspect the updated `Tm`/`cm` commands.
 
 ## Development environment
 
@@ -73,9 +81,8 @@ Open the repository in the provided [Development Container](https://containers.d
 
 ## Roadmap
 
-* Implement real PDF parsing in `backend/src/pdf/extract.rs`.
-* Produce incremental updates for transform, text edit, and style patches.
-* Complete the Fabric overlay controller logic and inline text editing UX.
+* Extend the IR to support inline text editing and vector paths.
+* Produce incremental updates for text edits and styling patches.
 * Add automated end-to-end tests in `/e2e` that exercise representative editing scenarios.
 
 Contributions are welcome via pull requests.

@@ -1,15 +1,11 @@
 import type { DocumentIR, PatchOperation, PatchResponse } from './types';
 
-const DEFAULT_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8787';
+const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8787';
 
-export type OpenResponse = {
-  docId: string;
-};
-
-export async function openDocument(file: File): Promise<OpenResponse> {
+export async function open(file: File): Promise<{ docId: string }> {
   const formData = new FormData();
   formData.set('file', file);
-  const response = await fetch(`${DEFAULT_BASE}/api/open`, {
+  const response = await fetch(`${API_BASE}/api/open`, {
     method: 'POST',
     body: formData,
   });
@@ -19,19 +15,16 @@ export async function openDocument(file: File): Promise<OpenResponse> {
   return response.json();
 }
 
-export async function fetchIR(docId: string): Promise<DocumentIR> {
-  const response = await fetch(`${DEFAULT_BASE}/api/ir/${encodeURIComponent(docId)}`);
+export async function getIR(docId: string): Promise<DocumentIR> {
+  const response = await fetch(`${API_BASE}/api/ir/${encodeURIComponent(docId)}`);
   if (!response.ok) {
-    throw new Error(`IR fetch failed: ${response.status}`);
+    throw new Error(`ir fetch failed: ${response.status}`);
   }
   return response.json();
 }
 
-export async function postPatch(
-  docId: string,
-  ops: PatchOperation[],
-): Promise<PatchResponse> {
-  const response = await fetch(`${DEFAULT_BASE}/api/patch/${encodeURIComponent(docId)}`, {
+export async function patch(docId: string, ops: PatchOperation[]): Promise<PatchResponse> {
+  const response = await fetch(`${API_BASE}/api/patch/${encodeURIComponent(docId)}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -44,8 +37,8 @@ export async function postPatch(
   return response.json();
 }
 
-export async function downloadPdf(docId: string): Promise<Blob> {
-  const response = await fetch(`${DEFAULT_BASE}/api/pdf/${encodeURIComponent(docId)}`);
+export async function download(docId: string): Promise<Blob> {
+  const response = await fetch(`${API_BASE}/api/pdf/${encodeURIComponent(docId)}`);
   if (!response.ok) {
     throw new Error(`download failed: ${response.status}`);
   }
