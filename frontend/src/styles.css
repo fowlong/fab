@@ -74,13 +74,6 @@ body {
   padding: 2rem;
 }
 
-.page-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-  align-items: center;
-}
-
 .page-wrapper {
   position: relative;
   box-shadow: 0 20px 40px rgba(15, 23, 42, 0.6);
@@ -89,26 +82,17 @@ body {
   background: #fff;
 }
 
-.page-wrapper__pdf canvas {
+.page-underlay canvas {
   display: block;
 }
 
-.page-wrapper__overlay {
+.page-overlay {
   position: absolute;
   inset: 0;
 }
 
-.fabric-page-overlay {
+.page-overlay canvas,
+.fabric-overlay {
   position: absolute;
   inset: 0;
-}
-
-.page-wrapper__overlay canvas {
-  display: block;
-}
-
-.pdf-page-canvas {
-  width: 100%;
-  height: auto;
-  display: block;
 }

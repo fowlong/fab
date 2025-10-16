@@ -1,45 +1,56 @@
-import { GlobalWorkerOptions, getDocument, type PDFDocumentProxy } from 'pdfjs-dist';
+import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist';
 import workerSrc from 'pdfjs-dist/build/pdf.worker?url';
 
 GlobalWorkerOptions.workerSrc = workerSrc;
 
+type PageSize = { widthPt: number; heightPt: number; widthPx: number; heightPx: number };
+
 export class PdfPreview {
   private container: HTMLElement;
-  private pdf: PDFDocumentProxy | null = null;
-  private pageSizes: Array<{ width: number; height: number }> = [];
+  private canvas: HTMLCanvasElement | null = null;
+  private pageSize: PageSize | null = null;
 
   constructor(container: HTMLElement) {
     this.container = container;
   }
 
-  async load(arrayBuffer: ArrayBuffer) {
+  async render(arrayBuffer: ArrayBuffer): Promise<void> {
     this.reset();
-    this.pdf = await getDocument({ data: arrayBuffer }).promise;
-    this.pageSizes = [];
-    for (let pageIndex = 1; pageIndex <= this.pdf.numPages; pageIndex += 1) {
-      const page = await this.pdf.getPage(pageIndex);
-      const viewport = page.getViewport({ scale: 1 });
-      const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      canvas.className = 'pdf-page-canvas';
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        throw new Error('Failed to get canvas context');
-      }
-      await page.render({ canvasContext: ctx, viewport }).promise;
-      this.container.appendChild(canvas);
-      this.pageSizes.push({ width: viewport.width, height: viewport.height });
+    const pdf = await getDocument({ data: arrayBuffer }).promise;
+    const page = await pdf.getPage(1);
+    const viewport = page.getViewport({ scale: 1 });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    canvas.className = 'pdf-underlay';
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('Unable to acquire canvas context');
     }
+    await page.render({ canvasContext: ctx, viewport }).promise;
+
+    this.container.appendChild(canvas);
+    this.canvas = canvas;
+    this.pageSize = {
+      widthPt: page.view[2] - page.view[0],
+      heightPt: page.view[3] - page.view[1],
+      widthPx: viewport.width,
+      heightPx: viewport.height,
+    };
   }
 
-  reset() {
+  getCanvas(): HTMLCanvasElement | null {
+    return this.canvas;
+  }
+
+  getPageSize(): PageSize | null {
+    return this.pageSize;
+  }
+
+  reset(): void {
     this.container.innerHTML = '';
-    this.pdf = null;
-    this.pageSizes = [];
-  }
-
-  getSizes() {
-    return [...this.pageSizes];
+    this.canvas = null;
+    this.pageSize = null;
   }
 }
