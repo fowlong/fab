@@ -6,7 +6,7 @@ export type OpenResponse = {
   docId: string;
 };
 
-export async function openDocument(file: File): Promise<OpenResponse> {
+export async function open(file: File): Promise<OpenResponse> {
   const formData = new FormData();
   formData.set('file', file);
   const response = await fetch(`${DEFAULT_BASE}/api/open`, {
@@ -19,7 +19,7 @@ export async function openDocument(file: File): Promise<OpenResponse> {
   return response.json();
 }
 
-export async function fetchIR(docId: string): Promise<DocumentIR> {
+export async function getIR(docId: string): Promise<DocumentIR> {
   const response = await fetch(`${DEFAULT_BASE}/api/ir/${encodeURIComponent(docId)}`);
   if (!response.ok) {
     throw new Error(`IR fetch failed: ${response.status}`);
@@ -27,10 +27,7 @@ export async function fetchIR(docId: string): Promise<DocumentIR> {
   return response.json();
 }
 
-export async function postPatch(
-  docId: string,
-  ops: PatchOperation[],
-): Promise<PatchResponse> {
+export async function patch(docId: string, ops: PatchOperation[]): Promise<PatchResponse> {
   const response = await fetch(`${DEFAULT_BASE}/api/patch/${encodeURIComponent(docId)}`, {
     method: 'POST',
     headers: {
@@ -44,10 +41,26 @@ export async function postPatch(
   return response.json();
 }
 
-export async function downloadPdf(docId: string): Promise<Blob> {
+export async function fetchPdfBytes(docId: string): Promise<ArrayBuffer> {
+  const response = await fetch(`${DEFAULT_BASE}/api/pdf/${encodeURIComponent(docId)}`);
+  if (!response.ok) {
+    throw new Error(`pdf fetch failed: ${response.status}`);
+  }
+  return response.arrayBuffer();
+}
+
+export async function download(docId: string): Promise<void> {
   const response = await fetch(`${DEFAULT_BASE}/api/pdf/${encodeURIComponent(docId)}`);
   if (!response.ok) {
     throw new Error(`download failed: ${response.status}`);
   }
-  return response.blob();
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${docId}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
