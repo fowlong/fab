@@ -107,6 +107,21 @@ body {
   display: block;
 }
 
+.pdf-container {
+  position: relative;
+}
+
+.pdf-underlay {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.fabric-overlay {
+  position: absolute;
+  inset: 0;
+}
+
 .pdf-page-canvas {
   width: 100%;
   height: auto;
