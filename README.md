@@ -20,19 +20,19 @@ The codebase is licensed under Apache-2.0. All third-party dependencies are limi
 
 ## Current status
 
-The current commit provides initial scaffolding for the frontend and backend projects together with strongly typed interfaces for the IR and patch protocol. Full PDF parsing, shaping, and editing logic are stubbed but the core routes and client wiring are ready for incremental feature development.
+Stage&nbsp;2 delivers a minimum viable transform pipeline. Page&nbsp;0 text runs and image XObjects are extracted into an IR, rendered with a Fabric.js controller, and patched back into the PDF by concatenating new matrices into an incremental update tail. The backend persists documents to `/tmp/fab`, caches the parsed IR, and rewrites the relevant content stream when a controller is moved.
 
 ### Frontend
 
-* Vite configuration for a TypeScript entry point.
-* Shared utility modules for coordinate math, Fabric.js mapping helpers, and API bindings.
-* React-free vanilla TypeScript app that renders pdf.js canvases and a Fabric overlay placeholder.
+* Strict-mode TypeScript Vite app that renders page&nbsp;0 with `pdfjs-dist`.
+* Fabric.js overlay controllers for text and image objects that translate drag/scale/rotate gestures into PDF-space matrices.
+* API bindings for `/api/open`, `/api/ir/:docId`, `/api/patch/:docId`, and `/api/pdf/:docId`, including a download helper.
 
 ### Backend
 
-* `cargo` workspace with Axum HTTP server skeleton.
-* Placeholder modules for PDF parsing, content tokenisation, patching, and font handling.
-* Data structures mirroring the JSON contracts shared with the frontend.
+* Axum 0.7 server with CORS configured for <http://localhost:5173>.
+* PDF loader using `lopdf`, a content tokeniser with byte spans, IR extraction for page&nbsp;0 text/image objects, and transform patch handling.
+* Incremental writer built on `lopdf::IncrementalDocument` that appends a new content stream object and updates the page dictionary.
 
 ## Getting started
 
@@ -49,7 +49,7 @@ npm install
 npm run dev
 ```
 
-The development server listens on <http://localhost:5173>. For now it renders placeholder canvases because the backend does not yet implement PDF parsing.
+Visit <http://localhost:5173>, choose a PDF, and drag the overlay controllers to update the live preview.
 
 ### Backend
 
@@ -58,7 +58,15 @@ cd backend
 cargo run
 ```
 
-The Axum server starts on <http://localhost:8787>. The `/api/open`, `/api/ir/:docId`, `/api/patch/:docId`, and `/api/pdf/:docId` routes are stubbed and return mock data.
+The Axum server listens on <http://localhost:8787>. It accepts multipart or base64 JSON payloads at `/api/open`, serves IR snapshots, applies transform patches, and streams the incrementally updated PDF.
+
+### Stage 2 manual test
+
+1. Start the backend (`cargo run`) and frontend (`npm run dev`).
+2. Load a one-page PDF containing text and an image. The overlay rectangles should appear over each object.
+3. Drag, rotate, and scale the text controller; the preview updates after the patch response.
+4. Repeat for the image controller.
+5. Download the updated PDF and inspect the content stream to confirm a single updated `Tm` or `cm` command.
 
 ## Development environment
 
