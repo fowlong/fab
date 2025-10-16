@@ -1,70 +1,61 @@
 # PDF Editor
 
-This repository hosts an experimental PDF editor that combines a Fabric.js overlay with a PDF.js bitmap underlay to offer direct manipulation of true PDF content streams. The long-term goal is a full incremental editor that rewrites text, image, and vector path objects in-place without rasterisation.
+This project delivers a minimal end-to-end workflow for rewriting text and image transforms inside a PDF without rasterising the page. A Rust (Axum) backend parses the document with `lopdf`, exposes a lightweight intermediate representation (IR), applies transform patches, and writes an incremental update. A Vite + TypeScript frontend renders page 0 with `pdf.js`, overlays Fabric.js controllers, and pushes deltas back to the server.
 
-## Project layout
+## Requirements
 
+- Rust 1.75+ with the default toolchain
+- Node.js 18+
+
+All bundled dependencies use permissive licences (Apache-2.0 or MIT).
+
+## Stage 2 workflow
+
+### 1. Start the backend
+
+```bash
+cd backend
+cargo run
 ```
-pdf-editor/
-  LICENSE
-  README.md
-  /frontend
-  /backend
-  /shared
-  /e2e
-```
 
-The `frontend` folder contains the Vite + TypeScript application that renders PDF pages with `pdf.js` and draws a Fabric.js overlay for interactive editing. The `backend` folder contains an Axum-based Rust service that parses PDFs via `lopdf`, exposes them as an intermediate representation (IR), and applies JSON patch operations to produce incremental PDF updates. The `shared` folder holds JSON schema files that document the contracts exchanged between the frontend and backend. The `e2e` folder is reserved for integration tests and sample fixtures.
+The server listens on <http://localhost:8787> with CORS enabled for <http://localhost:5173>.
 
-The codebase is licensed under Apache-2.0. All third-party dependencies are limited to permissive licences as listed in the project plan (MIT or Apache-2.0).
+### 2. Start the frontend
 
-## Current status
-
-The current commit provides initial scaffolding for the frontend and backend projects together with strongly typed interfaces for the IR and patch protocol. Full PDF parsing, shaping, and editing logic are stubbed but the core routes and client wiring are ready for incremental feature development.
-
-### Frontend
-
-* Vite configuration for a TypeScript entry point.
-* Shared utility modules for coordinate math, Fabric.js mapping helpers, and API bindings.
-* React-free vanilla TypeScript app that renders pdf.js canvases and a Fabric overlay placeholder.
-
-### Backend
-
-* `cargo` workspace with Axum HTTP server skeleton.
-* Placeholder modules for PDF parsing, content tokenisation, patching, and font handling.
-* Data structures mirroring the JSON contracts shared with the frontend.
-
-## Getting started
-
-### Prerequisites
-
-* Node.js 18+
-* Rust toolchain (stable)
-
-### Frontend
-
-```
+```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-The development server listens on <http://localhost:5173>. For now it renders placeholder canvases because the backend does not yet implement PDF parsing.
+Open <http://localhost:5173> in a browser.
 
-### Backend
+### 3. Exercise the transforms
+
+1. Pick a one-page PDF that contains at least one text object and one image XObject.
+2. Upload it via the “Select PDF” control.
+3. Drag, rotate, or scale the text controller – a single transform patch is sent to the backend and the PDF preview refreshes from the incremental save.
+4. Repeat the process with the image controller.
+5. Use the “Download updated PDF” button to fetch the latest revision.
+
+The IR (page 0 only for now) lists text runs and image placements with their matrices and byte spans. Patching left-multiplies the recorded matrix with the delta supplied by Fabric, rewrites the content stream, and appends a new content stream object plus trailer.
+
+## Repository layout
 
 ```
-cd backend
-cargo run
+backend/   Rust Axum service (PDF loader, IR extraction, patching, incremental writer)
+frontend/  Vite + TypeScript client (pdf.js preview, Fabric overlay)
+e2e/       Sample assets and future integration tests
 ```
 
-The Axum server starts on <http://localhost:8787>. The `/api/open`, `/api/ir/:docId`, `/api/patch/:docId`, and `/api/pdf/:docId` routes are stubbed and return mock data.
+## Development notes
 
-## Roadmap
+- Backend routes:
+  - `POST /api/open` – upload a PDF (multipart or base64 JSON), persist to `/tmp/fab/<docId>.pdf`, parse, and cache the IR.
+  - `GET /api/ir/:docId` – return the cached IR for page 0.
+  - `POST /api/patch/:docId` – apply transform patches, emit incremental PDF bytes, and return a data URI for the updated file.
+  - `GET /api/pdf/:docId` – stream the latest bytes.
+- The IR caches per document, so follow-up patches do not trigger a full reparse until after the incremental write succeeds.
+- Fabric controllers carry their original Fabric matrix (`F0`). Each modification computes `ΔF`, maps it into PDF space, and posts a single `transform` op.
 
-* Implement real PDF parsing in `backend/src/pdf/extract.rs`.
-* Produce incremental updates for transform, text edit, and style patches.
-* Complete the Fabric overlay controller logic and inline text editing UX.
-* Add automated end-to-end tests in `/e2e` that exercise representative editing scenarios.
-
-Contributions are welcome via pull requests.
+Future stages will add text editing, vector path support, richer selection tooling, and automated integration tests.

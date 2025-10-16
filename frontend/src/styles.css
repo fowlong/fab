@@ -1,114 +1,101 @@
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
   background: #0f172a;
-  color: #f8fafc;
+  color: #e2e8f0;
 }
 
 body {
   margin: 0;
+  background: #0f172a;
 }
 
-.layout {
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  height: 100vh;
-}
-
-.sidebar {
-  background: #111827;
-  padding: 1.5rem;
+.app-shell {
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
+  padding: 1.5rem;
+  box-sizing: border-box;
+  gap: 1.5rem;
+}
+
+.toolbar {
+  display: flex;
   gap: 1rem;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  flex-wrap: wrap;
 }
 
-.sidebar h1 {
-  margin: 0;
-  font-size: 1.5rem;
-}
-
-.sidebar__intro {
-  margin: 0;
-  font-size: 0.9rem;
-  color: rgba(248, 250, 252, 0.75);
-}
-
-.button {
+.control-button {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
+  padding: 0.75rem 1.25rem;
   border: none;
+  border-radius: 0.75rem;
   background: #2563eb;
   color: #f8fafc;
   font-weight: 600;
   cursor: pointer;
-  text-align: center;
-  gap: 0.5rem;
+  transition: background 0.2s ease;
 }
 
-.button--secondary {
-  background: rgba(37, 99, 235, 0.2);
-  color: #bfdbfe;
+.control-button:hover {
+  background: #1e4fd6;
+}
+
+.control-button input[type='file'] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
   cursor: pointer;
 }
 
-.button input[type='file'] {
-  display: none;
+.control-button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .status {
-  font-size: 0.85rem;
-  color: rgba(248, 250, 252, 0.75);
-  min-height: 2rem;
+  margin: 0;
+  min-height: 1.5rem;
+  font-size: 0.95rem;
+  color: #cbd5f5;
 }
 
-.editor {
-  overflow: auto;
-  background: #0f172a;
-  padding: 2rem;
-}
-
-.page-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-  align-items: center;
-}
-
-.page-wrapper {
+.viewer {
   position: relative;
-  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.6);
-  border-radius: 0.5rem;
-  overflow: hidden;
-  background: #fff;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  border-radius: 1rem;
+  background: #111d38;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.35);
 }
 
-.page-wrapper__pdf canvas {
-  display: block;
-}
-
-.page-wrapper__overlay {
-  position: absolute;
-  inset: 0;
-}
-
-.fabric-page-overlay {
-  position: absolute;
-  inset: 0;
-}
-
-.page-wrapper__overlay canvas {
-  display: block;
-}
-
-.pdf-page-canvas {
-  width: 100%;
+.pdf-underlay {
+  max-width: 100%;
   height: auto;
+  background: #fff;
+  border-radius: 0.5rem;
+  display: block;
+}
+
+.overlay-layer {
+  position: absolute;
+  inset: 1rem;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.overlay-layer canvas {
+  pointer-events: auto;
+}
+
+.overlay-canvas {
   display: block;
 }
